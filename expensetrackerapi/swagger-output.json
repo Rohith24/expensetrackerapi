@@ -1,0 +1,492 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Expense Tracker",
+    "description": "Expense Tracker",
+    "version": "1.0.0"
+  },
+  "host": "localhost:1337",
+  "basePath": "/",
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/login": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Login service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "userCode",
+            "in": "header",
+            "description": "User code.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "password",
+            "in": "header",
+            "description": "Password.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User logged in successfully."
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Logout service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "header",
+            "description": "Token.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User logged out successfully."
+          }
+        }
+      }
+    },
+    "/validate": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "User Validation service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "header",
+            "description": "Token.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User is authenticated."
+          }
+        }
+      }
+    },
+    "/settoken": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Set Token service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "header",
+            "description": "Token.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "usercode",
+            "in": "header",
+            "description": "User code.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token Successfully Saved."
+          }
+        }
+      }
+    },
+    "/api/upload/{dataType}": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "dataType",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "financialYear",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "organizationName",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/student/retrieve": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "organizationCode",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "course",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "financialYear",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "objectCode",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully."
+          }
+        }
+      }
+    },
+    "/user/save": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "User save service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Request body.",
+            "schema": {
+              "$ref": "#/definitions/userSave"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User created successfully."
+          }
+        }
+      }
+    },
+    "/student/viewstudenttransactions": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "student viewstudenttransactions service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "User.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "objectCode",
+            "in": "query",
+            "description": "Object Code.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "skipACL",
+            "in": "query",
+            "description": "skip ACL.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully."
+          }
+        }
+      }
+    },
+    "/student/viewbyId": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "student viewbyId service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "User.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "objectCode",
+            "in": "query",
+            "description": "Object Code.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "skipACL",
+            "in": "query",
+            "description": "skip ACL.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/transactions/retrieve": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "transactions retrieve service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "User.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "objectCode",
+            "in": "query",
+            "description": "Object Code.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "skipACL",
+            "in": "query",
+            "description": "skip ACL.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully."
+          }
+        }
+      }
+    },
+    "/organizations/retrieve": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "organizations retrieve service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "User.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "objectCode",
+            "in": "query",
+            "description": "Object Code.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "skipACL",
+            "in": "query",
+            "description": "skip ACL.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully."
+          }
+        }
+      }
+    },
+    "/organization/vieworganizations": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "organization vieworganizations service",
+        "description": "",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "User.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "objectCode",
+            "in": "query",
+            "description": "Object Code.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "skipACL",
+            "in": "query",
+            "description": "skip ACL.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully."
+          }
+        }
+      }
+    },
+    "/api/user/resetpassword": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "userName",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "newpassword",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "request": {
+                  "example": "any"
+                },
+                "newpassword": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  }
+}
