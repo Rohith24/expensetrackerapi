@@ -180,13 +180,13 @@ class tenant {
             tenant.Tenants.clear();
             let dc = {
                 "_id": 4,
-                "tenantCode": "Fees",
-                "tenantName": "Fees",
-                "description": "Fees",
+                "tenantCode": "BudgetTracker",
+                "tenantName": "BudgetTracker",
+                "description": "BudgetTracker",
                 "logLevel": 4,
                 "database": [
                     {
-                        "database": "Fees"
+                        "database": "BudgetTracker"
                     }
                 ]
             }

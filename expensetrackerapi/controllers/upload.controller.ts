@@ -98,7 +98,6 @@ router.post("/:dataType", uploadFile, async (req: express.Request, response: exp
                     return response.send({ code: "-1", message: "Financial Year is empty" });
                 }
                 let transactionModel = new transaction.transactions(req);
-                result = await transactionModel.insertSBICollectData(data, reqQuery.financialYear);
             } else if (dataType == 'students') {
                 if (String.isNullOrWhiteSpace(reqQuery.organizationName)) {
                     return response.send({ code: "-1", message: "organization Name is empty" });

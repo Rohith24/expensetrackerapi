@@ -3,10 +3,10 @@ export = {
     authenticationMode: "",
     port: 1337,
     resultSize: 50,
-    masterDB: process.env.masterDB || "Fees",
+    masterDB: process.env.masterDB || "BudgetTracker",
     database: process.env.dbType || "mongo",
     dbConnection: process.env.dbURL || "mongodb://127.0.0.1:18535",
-    defaultTenant: 'Fees',
+    defaultTenant: 'BudgetTracker',
     loadBalancing: [
     ],
     cache: {

@@ -4,10 +4,6 @@ import logger = require('../../controllers/logger');
 import user = require('../users');
 
 import mongoose = require('mongoose');
-import { organization } from '../organization';
-import { admin } from '../admin';
-const uuid = require('uuid');
-const moment = require('moment');
 
 var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
@@ -16,19 +12,21 @@ var Schema = mongoose.Schema;
 // create a transactionsschema
 var transactionsSchema = new Schema({
     "_id": { type: String },
-    "organizationName": { type: String, required: true },
-    "paymentMode": { type: String, required: true },
-    "bankReferenceNo": { type: String, required: true, maxlength: 50, index: true },
-    "transactionDate": { type: String, required: true },
+    "accountId": { type: String, required: true, index: true },
+    "bankReferenceNo": { type: String, required: false, maxlength: 200 },
+    "bankTranSummary": { type: String, required: true, maxlength: 200 },
+    "transactionDate": { type: Date, required: true, index: true },
+    "transactionValueDate": { type: Date, required: true },
+    "type": { type: String, required: true, index: true },
     "amount": { type: Number, required: true },
-    "feesPaid": {},
-    "earlierDues": { type: Number, required: true, default: 0 },
-    "status": { type: String, required: true },
-    "studentId": { type: String, required: true },
-    "yearAndBranch": { type: String },
+
+    "catagory": { type: String, index: true },
+    "details": { type: String },
+    "additionalDetails": { type: String },
+
     "remarks": { type: String },
     "createdBy": { type: String, required: true },
-    "dateCreated": { type: Date },
+    "dateCreated": { type: Date, default: Date.now },
     "lastModifiedBy": { type: String, required: true },
     "lastModifiedDate": { type: Date },
     "deleteMark": { type: Number, required: true, default: 0 },//0 = available 1= deleted
@@ -103,23 +101,6 @@ export class transactionFactory extends coreModule {
         } catch (ex) {
             logger.error(this.request, "Error while executing findById : " + ex.toString(), 'transaction', "", "catch", '1', transactionId, ex);
         }
-    }
-
-    /**
-    * DAL Call findByCode from mongodb based on objectCode
-    * @objectCode objectCode
-    * return transaction object.
-    */
-    public findByCode = async (objectCode: string) => {
-        try {
-            var model = await this.dal.model("transaction");
-            var ret = await model.findByCode(objectCode);
-        } catch (err) {
-            logger.error(this.request, "Error while executing findByCode : " + err.toString(), 'transaction', "", "catch", '1', objectCode, err);
-
-            console.log(err);
-        }
-        return ret;
     }
 
     /**
@@ -348,98 +329,5 @@ export class transactionFactory extends coreModule {
         var model = await this.dal.model('transaction');
         var resData = await model.insertMany(transactionObjects);
         return await resData;
-    }
-
-    public insertSBICollectData = async (sbiCollectData, financialYear) => {
-        try {
-            /**
-             * TODO
-             * Verify transaction dates in excel before updating in db for checking the financial year they sent matched or not.
-             * If not need to throw error message to UI with not valid data.
-             * */
-            var finStartYear = Number.parseInt(financialYear.split('-')[0]);
-
-            const financialYearStart = new Date(`${finStartYear}-04-01`);
-            const financialYearEnd = new Date(`${finStartYear + 1}-03-31`);
-
-            const allInFinancialYear = sbiCollectData.every(obj => {
-                const transcationDate = new Date((obj['Transaction Date'] - (25567 + 2)) * 86400 * 1000);
-                return transcationDate >= financialYearStart && transcationDate <= financialYearEnd;
-            });
-
-            if (!allInFinancialYear)
-                throw `The some of transcations are not in the ${financialYear}`;
-
-            let organizationName = sbiCollectData[0]['Category Name'];
-            const allInOrganizationName = sbiCollectData.every(obj => obj['Category Name'] == organizationName);
-
-            if (!allInOrganizationName)
-                throw `The some of transcations are not in the Organization '${organizationName}'`;
-
-
-
-            let updatedData = [];
-            let organizationModel = new organization.organization(this.request);
-            let studentModel = new user.user.students(this.request);
-            let organizationObj = await organizationModel.findOne({ "organizationNameAsPerSBI": organizationName });
-            if (!organizationObj)
-                throw `The Organization '${organizationName}' not found`;
-
-            var userModel = new admin.user(this.request);
-            let permission = await userModel.getPermission(organizationObj.organizationCode);
-            if (permission < 8)
-                return { code: "-1", message: "You don't have permission to upload transcations" };
-
-            var message = "";
-            for (let sbiObj of sbiCollectData || []) {
-                let transactionObj = await this.findById(sbiObj['Bank Reference No']);
-                if (transactionObj) {
-                    continue;
-                }
-
-                var transactionStudentID = sbiObj['UNIQUE NUMBER'] || sbiObj['UNIQUE NO'];
-                let studentData = await studentModel.findById(transactionStudentID);
-                if (!studentData || studentData == null) {
-                    message += `\nNo student found for ${transactionStudentID} for transaction id ${sbiObj['Bank Reference No']}`;
-                    continue;
-                }
-                let organizationName = sbiObj['Category Name'];
-                let obj = {
-                    "_id": sbiObj['Bank Reference No'],
-                    "organizationName": organizationName,
-                    "paymentMode": sbiObj['Payment Mode'],
-                    "bankReferenceNo": sbiObj['Bank Reference No'],
-                    "transactionDate": new Date((sbiObj['Transaction Date'] - (25567 + 2)) * 86400 * 1000),
-                    "amount": sbiObj['Amount'] || 0,
-                    "earlierDues": sbiObj['d EARLIER DUES IF ANY'] != 'null' ? sbiObj['d EARLIER DUES IF ANY'] : 0,
-                    "status": sbiObj['Status'],
-                    "studentId": sbiObj['UNIQUE NUMBER'] || sbiObj['UNIQUE NO'],
-                    "yearAndBranch": sbiObj['YEAR AND  BRANCH OF STUDY'],
-                    "remarks": sbiObj['Remarks'],
-                    "createdBy": this.request?.currentUser?.userCode || "crradmin",
-                    "lastModifiedBy": this.request?.currentUser?.userCode || "crradmin",
-                    "tenantCode": "Fees",
-                    "changeCount": 1
-                };
-                let feesPaid = {};
-                for (let feeType in organizationObj.feesTypes || {}) {
-                    let obj = organizationObj.feesTypes[feeType];
-                    feesPaid[feeType] = sbiObj[obj.transactionColumnName] != 'null' ? sbiObj[obj.transactionColumnName] : 0 || 0;
-                }
-                obj["feesPaid"] = feesPaid;
-                updatedData.push(obj);
-            }
-            if (updatedData.length > 0) {
-                let res = await this.insertMany(updatedData);
-                await studentModel.updateFeesBasedOnTransactions(updatedData, financialYear);
-                return { code: '0', message: `${res.length} transcations inserted successfully.${message}` };
-            } else {
-                return { code: '0', message: `unable to upload transcations. ${message}` };
-            }
-
-        } catch (ex) {
-            console.log('error in insertSBICollectData: ' + ex.toString());
-            return { code: '-1', message: 'error in while inserting transcations. please check file. Details: ' + ex.toString() };
-        }
     }
 }

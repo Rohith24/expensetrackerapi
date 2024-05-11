@@ -26,6 +26,7 @@ export function initialize(app: express.Application) {
     app.use('/api/transaction', require("../controllers/transaction.controller"));
     app.use('/api/organization', require("../controllers/organization.controller"));
     app.use('/api/user', require("../controllers/user.controller"));
+    app.use('/api/account', require("../controllers/account.controller"));
 
 }
 

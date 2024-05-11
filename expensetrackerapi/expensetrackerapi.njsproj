@@ -43,9 +43,12 @@
   <ItemGroup>
     <TypeScriptCompile Include="appStart\extensions.ts" />
     <TypeScriptCompile Include="appStart\routing.ts" />
-    <TypeScriptCompile Include="swagger.ts">
-      <SubType>Code</SubType>
-    </TypeScriptCompile>
+    <TypeScriptCompile Include="controllers\account.controller.ts" />
+    <TypeScriptCompile Include="modules\bank\bank.ts" />
+    <TypeScriptCompile Include="modules\bank\index.ts" />
+    <TypeScriptCompile Include="modules\account\account.ts" />
+    <TypeScriptCompile Include="modules\account\index.ts" />
+    <TypeScriptCompile Include="swagger.ts" />
     <TypeScriptCompile Include="config.ts" />
     <TypeScriptCompile Include="controllers\authentication.ts" />
     <TypeScriptCompile Include="controllers\logger.ts" />
@@ -85,9 +88,11 @@
     <Folder Include="controllers\" />
     <Folder Include="lib\" />
     <Folder Include="modules\" />
+    <Folder Include="modules\bank\" />
     <Folder Include="modules\admin\" />
     <Folder Include="modules\audit\" />
     <Folder Include="modules\dal\" />
+    <Folder Include="modules\account\" />
     <Folder Include="modules\organization\" />
     <Folder Include="modules\system\" />
     <Folder Include="modules\transactions\" />

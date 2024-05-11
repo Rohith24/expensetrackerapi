@@ -4,6 +4,26 @@ import logger = require('../../controllers/logger');
 import util = require('../../lib/utilities');
 
 /**
+* Save Validations
+* @requestBody requestBody
+* return code => "0" (if validation success)  => -1 (if validation fails)
+*/
+export function Save(requestBody: any, type: any) {
+    if (String.isNullOrWhiteSpace(requestBody.user)) {
+        return { code: "-1", message: "user is empty" };
+    } else if (requestBody[type] == null || requestBody[type] == undefined) {
+        return { code: "-1", message: type + " json cannot be empty" };
+    }
+
+    let res = userValidations(requestBody[type]);
+    if (res.code == "-1") {
+        return res;
+    }
+
+    return { code: "0", message: "Validation success" };
+}
+
+/**
 * Save User
 * @requestBody requestBody
 * return code => "0" (if validation success)  => -1 (if validation fails)
@@ -34,12 +54,6 @@ export function studentSaveValidations(requestBody: any) {
     } else if (requestBody.Student == null || requestBody.Student == undefined) {
         return { code: "-1", message: "Student json cannot be empty" };
     }
-
-    let res = userValidations(requestBody.Student);
-    if (res.code == "-1") {
-        return res;
-    }
-
     return { code: "0", message: "Validation success" };
 }
 
