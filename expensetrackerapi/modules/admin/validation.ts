@@ -8,14 +8,14 @@ import util = require('../../lib/utilities');
 * @requestBody requestBody
 * return code => "0" (if validation success)  => -1 (if validation fails)
 */
-export function Save(requestBody: any, type: any) {
+export function SaveValidations(requestBody: any, type: any) {
     if (String.isNullOrWhiteSpace(requestBody.user)) {
         return { code: "-1", message: "user is empty" };
     } else if (requestBody[type] == null || requestBody[type] == undefined) {
         return { code: "-1", message: type + " json cannot be empty" };
     }
 
-    let res = userValidations(requestBody[type]);
+    let res = userValidations(requestBody[type], type);
     if (res.code == "-1") {
         return res;
     }
@@ -61,19 +61,21 @@ export function studentSaveValidations(requestBody: any) {
 /**
 * User Object Validation
 * @userObject user Object
+* @type type of Object
 * return code => "0" (if validation success)  => -1 (if validation fails)
 */
-export function userValidations(userObject: any) {
+export function userValidations(userObject: any, type: string = "student") {
     try {
 
         let userNotNullParameters = [];
         let userNotEmptyParameters = [];
         let userNumberedParameters = ["deleteMark", "changeCount", "isActive"];
-        return util.validations(userObject, "student", userNotNullParameters, userNotEmptyParameters, userNumberedParameters, true);
+        return util.validations(userObject, type, userNotNullParameters, userNotEmptyParameters, userNumberedParameters, true);
     } catch (ex) {
         return { code: "-1", message: "Error while exectuing validation in utilites:" + ex };
     }
 }
+
 
 export function groupSaveValidations(requestBody: any) {
     if (String.isNullOrWhiteSpace(requestBody.Group)) {

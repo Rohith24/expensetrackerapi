@@ -21,6 +21,7 @@ var accountSchema = new Schema({
     "type": { type: String, required: true, index: true },
     "balance": { type: Number, required: true },
     "currency": { type: String, required: true },
+    "interest": { type: Number, required: true },
 
     "remarks": { type: String },
     "createdBy": { type: String, required: true },
@@ -172,7 +173,7 @@ export class accountFactory extends coreModule {
       */
     public save = async (accountObj: any) => {
         try {
-            var accountExists = await this.findOne({ 'objectCode': accountObj.objectCode });
+            var accountExists = await this.findById(accountObj._id);
             let result, changeCount = accountObj.changeCount;
 
             if (changeCount == 0 || changeCount == null || changeCount == undefined) {
@@ -244,7 +245,7 @@ export class accountFactory extends coreModule {
             if (objectCode != null && objectCode != undefined) {
                 var retObj = null;
                 var query = {
-                    objectCode: objectCode
+                    _id: objectCode
                 };
                 retObj = await model.find(query, {});
                 if (retObj != null && retObj != undefined && retObj[0]) {
@@ -259,7 +260,6 @@ export class accountFactory extends coreModule {
                     if (retObj.isActive && retObj.isActive == 0) {
                         return { code: "-1", message: "account already exists and is inactive." };
                     }
-
 
                     retObj.isActive = 0;
                     retObj.deleteMark = 1;

@@ -21,12 +21,12 @@ export function initialize(app: express.Application) {
 
     //app.all(prefix + '/*', authorize); //this will redirect all /api/* request to authorization
     //console.log(process.cwd())
+    app.use('/api/accounts', require("../controllers/account.controller"));
     app.use('/api/upload', require("../controllers/upload.controller"));
     app.use('/api/student', require("../controllers/student.controller"));
     app.use('/api/transaction', require("../controllers/transaction.controller"));
     app.use('/api/organization', require("../controllers/organization.controller"));
     app.use('/api/user', require("../controllers/user.controller"));
-    app.use('/api/account', require("../controllers/account.controller"));
 
 }
 
