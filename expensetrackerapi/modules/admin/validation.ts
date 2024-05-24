@@ -8,16 +8,18 @@ import util = require('../../lib/utilities');
 * @requestBody requestBody
 * return code => "0" (if validation success)  => -1 (if validation fails)
 */
-export function SaveValidations(requestBody: any, type: any) {
+export function SaveValidations(requestBody: any, type: any, canCheckBasicFields: boolean = true) {
     if (String.isNullOrWhiteSpace(requestBody.user)) {
         return { code: "-1", message: "user is empty" };
     } else if (requestBody[type] == null || requestBody[type] == undefined) {
         return { code: "-1", message: type + " json cannot be empty" };
     }
 
-    let res = userValidations(requestBody[type], type);
-    if (res.code == "-1") {
-        return res;
+    if (canCheckBasicFields) {
+        let res = userValidations(requestBody[type], type);
+        if (res.code == "-1") {
+            return res;
+        }
     }
 
     return { code: "0", message: "Validation success" };

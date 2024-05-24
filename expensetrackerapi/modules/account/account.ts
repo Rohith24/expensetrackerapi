@@ -20,6 +20,7 @@ var accountSchema = new Schema({
     "name": { type: String, required: true, index: true },
     "type": { type: String, required: true, index: true },
     "balance": { type: Number, required: true },
+    "initBalance": { type: Number, required: true },
     "currency": { type: String, required: true },
     "interest": { type: Number, required: true },
 
@@ -327,5 +328,16 @@ export class accountFactory extends coreModule {
         var model = await this.dal.model('account');
         var resData = await model.insertMany(accountObjects);
         return await resData;
+    }
+
+    public UpdateAmount = async (accountId: any, amount: number) => {
+        var accountExists = await this.findById(accountId);
+        if (accountExists) {
+            if (accountExists.balance)
+                accountExists.balance += amount;
+            else
+                accountExists.balance = amount;
+            return await this._update(accountExists);
+        }
     }
 }

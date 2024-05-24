@@ -167,6 +167,11 @@
             "name": "accountId",
             "in": "query",
             "type": "string"
+          },
+          {
+            "name": "deleteMark",
+            "in": "query",
+            "type": "string"
           }
         ],
         "responses": {
@@ -459,45 +464,137 @@
         }
       }
     },
-    "/transactions/retrieve": {
+    "/api/transaction/": {
       "get": {
         "tags": [
-          "User"
+          "Transactions"
         ],
-        "summary": "transactions retrieve service",
         "description": "",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
         "parameters": [
           {
-            "name": "user",
+            "name": "accountId",
             "in": "query",
-            "description": "User.",
-            "required": true,
             "type": "string"
           },
           {
-            "name": "objectCode",
+            "name": "type",
             "in": "query",
-            "description": "Object Code.",
-            "required": true,
             "type": "string"
           },
           {
-            "name": "skipACL",
+            "name": "deleteMark",
             "in": "query",
-            "description": "skip ACL.",
-            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "transactionId",
+            "in": "query",
             "type": "string"
           }
         ],
         "responses": {
           "200": {
-            "description": "User retrieved successfully."
+            "description": "transaction retrieved successfully."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Transaction": {
+                  "example": "any"
+                },
+                "user": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction created successfully."
+          }
+        }
+      }
+    },
+    "/api/transaction/remove": {
+      "delete": {
+        "tags": [
+          "Transactions"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "objectKey",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "tenantId": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/transaction/insert": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Transaction": {
+                  "example": "any"
+                },
+                "user": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction created successfully."
           }
         }
       }

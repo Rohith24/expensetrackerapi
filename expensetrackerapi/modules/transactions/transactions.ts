@@ -8,17 +8,21 @@ import mongoose = require('mongoose');
 var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
 
-
+enum TransactionType {
+    Credit = 'Credit',
+    Debit = 'Debit',
+    Transfer = 'Transfer'
+}
 // create a transactionsschema
 var transactionsSchema = new Schema({
-    "_id": { type: String },
-    "accountId": { type: String, required: true, index: true },
+    "fromAccountId": { type: String, index: true },
+    "toAccountId": { type: String, index: true },
     "bankReferenceNo": { type: String, required: false, maxlength: 200 },
-    "bankTranSummary": { type: String, required: true, maxlength: 200 },
-    "transactionDate": { type: Date, required: true, index: true },
-    "transactionValueDate": { type: Date, required: true },
-    "type": { type: String, required: true, index: true },
+    "bankTranSummary": { type: String, required: false, maxlength: 500 },
+    "transactionDate": { type: Date, required: true },
+    "transactionValueDate": { type: Date, required: false },
     "amount": { type: Number, required: true },
+    "subTranscationIds": [Schema.Types.ObjectId],
 
     "catagory": { type: String, index: true },
     "details": { type: String },
@@ -174,7 +178,7 @@ export class transactionFactory extends coreModule {
       */
     public save = async (transactionObj: any) => {
         try {
-            var transactionExists = await this.findOne({ 'objectCode': transactionObj.objectCode });
+            var transactionExists = await this.findById(transactionObj._id);
             let result, changeCount = transactionObj.changeCount;
 
             if (changeCount == 0 || changeCount == null || changeCount == undefined) {
