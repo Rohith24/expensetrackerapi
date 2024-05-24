@@ -10,6 +10,7 @@ const xlsx = require('xlsx');
 
 import express = require('express');
 import { admin } from "../modules/admin";
+import { account } from "../modules/account";
 var router = express.Router();
 export = router;
 
@@ -74,7 +75,7 @@ function uploadFile(request, response, next) {
  */
 router.post("/:dataType", uploadFile, async (req: express.Request, response: express.Response) => {
     //logger.info(req, "request body", "upload", req, "request", '5', '');
-
+    // #swagger.tags = ['Upload Bulk']
     try {
         let dataType = req.params.dataType;
         let reqQuery: any = req.query;
@@ -83,7 +84,13 @@ router.post("/:dataType", uploadFile, async (req: express.Request, response: exp
             console.log(os.type());
             const workbook = xlsx.readFile(req.file.path);
             const sheet_name_list = workbook.SheetNames;
-            const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]], { header: 1 });
+            var sheetName;
+            if (dataType == 'transactions') {
+                sheetName = sheet_name_list[1]
+            } else {
+                sheetName = sheet_name_list[0];
+            }
+            const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
             const headers = jsonData[0].filter(header => header.trim() !== '');
 
             const data = jsonData.slice(1).map(row => {
@@ -94,35 +101,13 @@ router.post("/:dataType", uploadFile, async (req: express.Request, response: exp
                 return rowData;
             });
             if (dataType == 'transactions') {
-                if (String.isNullOrWhiteSpace(reqQuery.financialYear)) {
-                    return response.send({ code: "-1", message: "Financial Year is empty" });
-                }
                 let transactionModel = new transaction.transactions(req);
-            } else if (dataType == 'students') {
-                if (String.isNullOrWhiteSpace(reqQuery.organizationName)) {
-                    return response.send({ code: "-1", message: "organization Name is empty" });
-                }
-                if (String.isNullOrWhiteSpace(reqQuery.financialYear)) {
-                    return response.send({ code: "-1", message: "Financial Year is empty" });
-                }
-                var userModel = new admin.user(req);
-                let permission = await userModel.getPermission(reqQuery.organizationName);
-                if (permission < 8)
-                    return response.send({ code: "-1", message: "You don't have permission to upload" });
-
-                let studentModel = new user.students(req);
-                result = await studentModel.insertStudentData(data, reqQuery.organizationName, reqQuery.financialYear);
-            } else if (dataType == 'organizations') {
-                if (!req.currentUser.isSuperAdmin)
-                    return response.send({ code: "-1", message: "You don't have permission to upload" });
-                let branches = {};
-                let i = 1;
-                var sheets = sheet_name_list.slice(1);
-                for (let sheet in sheets) {
-                    branches[sheets[sheet]] = xlsx.utils.sheet_to_json(workbook.Sheets[sheets[sheet]]);
-                }
-                let organizationModel = new organization.organization(req);
-                result = await organizationModel.insertorganizationData(data, branches);
+                result = await transactionModel.insertTransactionsData(data);
+            } else if (dataType == 'accounts') {
+                let accountModel = new account.accounts(req);
+                result = await accountModel.insertAccountData(data);
+            } else {
+                result = { code: "-1", message: `Only supports upload of 'transactions' and 'accounts'` };
             }
         } else {
             result = { code: "-1", message: `Error while uploading to ${dataType}` };
@@ -134,13 +119,15 @@ router.post("/:dataType", uploadFile, async (req: express.Request, response: exp
             }
             logger.error(req, `Error while executing ${dataType} upload error : ` + result.message, `Upload/${dataType}`, '', "catch", '1', req.body, result.message);
         }
-        if (fs.existsSync(req.file.path)) {
-            fs.unlink(req.file.path, (err) => {
-                if (err) {
-                    console.log(err);
-                }
-                console.log('deleted');
-            })
+        if (req.file) {
+            if (fs.existsSync(req.file.path)) {
+                fs.unlink(req.file.path, (err) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                    console.log('deleted');
+                })
+            }
         }
         //logger.info(req, "Response", `Upload/${dataType}`, result.objectCode, "response", '5', result.data);
         return response.send(result);

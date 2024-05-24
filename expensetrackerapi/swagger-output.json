@@ -285,22 +285,15 @@
     },
     "/api/upload/{dataType}": {
       "post": {
+        "tags": [
+          "Upload Bulk"
+        ],
         "description": "",
         "parameters": [
           {
             "name": "dataType",
             "in": "path",
             "required": true,
-            "type": "string"
-          },
-          {
-            "name": "financialYear",
-            "in": "query",
-            "type": "string"
-          },
-          {
-            "name": "organizationName",
-            "in": "query",
             "type": "string"
           }
         ],

@@ -4,6 +4,7 @@ import logger = require('../../controllers/logger');
 import user = require('../users');
 
 import mongoose = require('mongoose');
+import { account } from '../account';
 
 var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
@@ -27,6 +28,7 @@ var transactionsSchema = new Schema({
     "catagory": { type: String, index: true },
     "details": { type: String },
     "additionalDetails": { type: String },
+    "whom": { type: String },
 
     "remarks": { type: String },
     "createdBy": { type: String, required: true },
@@ -333,5 +335,103 @@ export class transactionFactory extends coreModule {
         var model = await this.dal.model('transaction');
         var resData = await model.insertMany(transactionObjects);
         return await resData;
+    }
+
+
+    public insertTransactionsData = async (transactionData) => {
+        let msg = "";
+        let accountModel = new account.accounts(this.request);
+        try {
+            var insertedCount = 0;
+            var updatedCount = 0;
+            for (let transactionObj of transactionData || []) {
+                let currentMessage = ""
+                let obj: any = {};
+                if (transactionObj['Date']) {
+                    try {
+                        obj["transactionDate"] = new Date((transactionObj['Date'] - (25567 + 2)) * 86400 * 1000);
+                    }
+                    catch (Ex) {
+                        var dateString = transactionObj['Date'];// "01012023";
+                        var year = dateString.substr(4, 4);
+                        var month = dateString.substr(2, 2) - 1; // Month is zero-based in JavaScript Date
+                        var day = dateString.substr(0, 2);
+                        var date = new Date(year, month, day);
+                        obj["transactionDate"] = date;
+                    }
+                }
+                let transactionType = transactionObj['Transaction Type'];
+
+                var toAccount = await accountModel.findOne({ "name": { "$regex": transactionObj['To Account'], "$options": "i" } });
+                var fromAccount = await accountModel.findOne({ "name": { "$regex": transactionObj['From Account'], "$options": "i" } });
+                var amount = this.roundNumber(transactionObj['Amount']);
+                obj["amount"] = Math.abs(amount);
+                if (transactionType == TransactionType.Credit) {
+                    if (toAccount) {
+                        obj["toAccountId"] = toAccount._id;
+                        toAccount.balance = this.roundNumber(parseFloat(toAccount.balance) + amount) ;
+                        accountModel._update(toAccount);
+                    } else {
+                        obj["toAccountId"] = transactionObj['To Account'];
+                    }
+                } else if (transactionType == TransactionType.Debit) {
+                    if (toAccount) {
+                        obj["fromAccountId"] = toAccount._id;
+                        toAccount.balance = this.roundNumber(parseFloat(toAccount.balance) + amount);
+                        accountModel._update(toAccount);
+                    } else {
+                        obj["fromAccountId"] = transactionObj['To Account'];
+                    }
+                } else if (transactionType == TransactionType.Transfer) {
+                    if (toAccount) {
+                        obj["toAccountId"] = toAccount._id;
+                        toAccount.balance = this.roundNumber(parseFloat(toAccount.balance) + amount);
+                        accountModel._update(toAccount);
+                    } else {
+                        obj["toAccountId"] = transactionObj['To Account'];
+                    }
+                    if (fromAccount) {
+                        obj["fromAccountId"] = fromAccount._id;
+                        fromAccount.balance = this.roundNumber(parseFloat(fromAccount.balance) - amount);
+                        accountModel._update(fromAccount);
+                    } else {
+                        obj["fromAccountId"] = transactionObj['From Account'];
+                    }
+                }
+                obj["category"] = transactionObj['Category'];
+                obj["details"] = transactionObj['Details'];
+                obj["whom"] = transactionObj['Whom'];
+                obj["additionalDetails"] = transactionObj['SubDetails'];
+                obj["createdBy"] = this.request?.currentUser?.userCode || "crradmin";
+                obj["lastModifiedBy"] = this.request?.currentUser?.userCode || "crradmin";
+                obj["tenantCode"] = "BudgetTracker";
+                
+                let transactionData = await this._create(obj);
+                insertedCount++;
+
+                if (currentMessage) {
+                    msg += `\n${transactionObj}: \n` + currentMessage + "\n";
+                }
+            }
+            console.log(msg);
+            let message = "";
+            if (insertedCount > 0)
+                message += `Accounts - ${insertedCount} Inserted successfully.\n`;
+            if (updatedCount > 0)
+                message += `Accounts - ${updatedCount} Updated successfully.\n`;
+            message += msg;
+            if (message)
+                return { code: '0', message: message };
+            else
+                return { code: '-1', message: 'Invalid data given. Please upload correct data' };
+        } catch (ex) {
+            console.log('error in insertAccountData: ' + ex.toString() + '\nMessage:' + msg);
+            return { code: '-1', message: 'Error while inserting transaction. Details: ' + ex.toString() };
+        }
+    }
+
+    public roundNumber = (amount) => {
+        return Math.round((amount + Number.EPSILON) * 100) / 100;
+
     }
 }

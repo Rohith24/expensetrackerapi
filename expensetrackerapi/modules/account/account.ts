@@ -14,15 +14,14 @@ var Schema = mongoose.Schema;
 
 // create a accountSchema
 var accountSchema = new Schema({
-    "_id": { type: String },
-    "customerId": { type: String, required: true, index: true },
+    "customerId": { type: String },
     "bankId": { type: String, required: true, index: true },
     "name": { type: String, required: true, index: true },
     "type": { type: String, required: true, index: true },
     "balance": { type: Number, required: true },
     "initBalance": { type: Number, required: true },
     "currency": { type: String, required: true },
-    "interest": { type: Number, required: true },
+    "interest": { type: Number },
 
     "remarks": { type: String },
     "createdBy": { type: String, required: true },
@@ -338,6 +337,66 @@ export class accountFactory extends coreModule {
             else
                 accountExists.balance = amount;
             return await this._update(accountExists);
+        }
+    }
+
+
+    public insertAccountData = async (accountData) => {
+        let msg = "";
+        try {
+            var insertedCount = 0;
+            var updatedCount = 0;
+            for (let accountObj of accountData || []) {
+                let currentMessage = ""
+                let accountName = accountObj['AccountName'];
+                if (!accountName) continue;
+                let accountExists = await this.findOne({ name: accountName });
+                let obj: any = {};
+                if (!accountExists) {
+                    obj["name"] = accountObj['AccountName'];
+                    obj["bankId"] = accountObj['Bank'];
+                    obj["type"] = accountObj['Type'];
+                    obj["initBalance"] = accountObj['Initial Balance'];
+                    obj["balance"] = accountObj['Initial Balance'];
+                    obj["currency"] = accountObj['Currency'];
+                    obj["interest"] = accountObj['Interest'];
+                    obj["createdBy"] = this.request?.currentUser?.userCode || "crradmin";
+                    obj["lastModifiedBy"] = this.request?.currentUser?.userCode || "crradmin";
+                    obj["tenantCode"] = "BudgetTracker";
+                    let accountData = await this._create(obj);
+                    insertedCount++;
+                }
+                else {
+                    obj = accountExists;
+                    obj["name"] = accountObj['AccountName'];
+                    obj["bankId"] = accountObj['Bank'];
+                    obj["type"] = accountObj['Type'];
+                    obj["initBalance"] = accountObj['Initial Balance'];
+                    obj["currency"] = accountObj['Currency'];
+                    obj["interest"] = accountObj['Interest'];
+                    obj["lastModifiedBy"] = this.request?.currentUser?.userCode || "crradmin";
+                    obj.changeCount = obj.changeCount + 1;
+                    let accountData = await this._update(obj);
+                    updatedCount++;
+                }
+                if (currentMessage) {
+                    msg += `\n${accountName}: \n` + currentMessage + "\n";
+                }
+            }
+            console.log(msg);
+            let message = "";
+            if (insertedCount > 0)
+                message += `Accounts - ${insertedCount} Inserted successfully.\n`;
+            if (updatedCount > 0)
+                message += `Accounts - ${updatedCount} Updated successfully.\n`;
+            message += msg;
+            if (message)
+                return { code: '0', message: message };
+            else
+                return { code: '-1', message: 'Invalid data given. Please upload correct data' };
+        } catch (ex) {
+            console.log('error in insertAccountData: ' + ex.toString() + '\nMessage:' + msg);
+            return { code: '-1', message: 'Error while inserting account. Details: ' + ex.toString() };
         }
     }
 }
