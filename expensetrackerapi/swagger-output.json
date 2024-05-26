@@ -221,6 +221,11 @@
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "includeTransactions",
+            "in": "query",
+            "type": "string"
           }
         ],
         "responses": {
@@ -520,25 +525,21 @@
         }
       }
     },
-    "/api/transaction/remove": {
-      "delete": {
+    "/api/transaction/{transactionId}": {
+      "patch": {
         "tags": [
           "Transactions"
         ],
         "description": "",
         "parameters": [
           {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
             "name": "user",
-            "in": "query",
-            "type": "string"
-          },
-          {
-            "name": "objectKey",
-            "in": "query",
-            "type": "string"
-          },
-          {
-            "name": "id",
             "in": "query",
             "type": "string"
           },
@@ -560,25 +561,31 @@
             "description": "OK"
           }
         }
-      }
-    },
-    "/api/transaction/insert": {
-      "post": {
+      },
+      "delete": {
         "tags": [
           "Transactions"
         ],
         "description": "",
         "parameters": [
           {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "type": "string"
+          },
+          {
             "name": "body",
             "in": "body",
             "schema": {
               "type": "object",
               "properties": {
-                "Transaction": {
-                  "example": "any"
-                },
-                "user": {
+                "tenantId": {
                   "example": "any"
                 }
               }
@@ -587,7 +594,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Transaction created successfully."
+            "description": "OK"
           }
         }
       }

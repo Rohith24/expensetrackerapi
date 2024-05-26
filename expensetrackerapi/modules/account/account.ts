@@ -5,6 +5,7 @@ import user = require('../users');
 
 import mongoose = require('mongoose');
 import { admin } from '../admin';
+import { roundNumber } from '../../lib/utilities';
 const uuid = require('uuid');
 const moment = require('moment');
 
@@ -329,15 +330,21 @@ export class accountFactory extends coreModule {
         return await resData;
     }
 
-    public UpdateAmount = async (accountId: any, amount: number) => {
-        var accountExists = await this.findById(accountId);
-        if (accountExists) {
-            if (accountExists.balance)
-                accountExists.balance += amount;
-            else
-                accountExists.balance = amount;
-            return await this._update(accountExists);
+    public UpdateBalance = async (accountId: any, amount: number) => {
+        if (accountId != null && accountId != undefined) {
+            var accountExists = await this.findById(accountId);
+            if (accountExists) {
+                return await this.UpdateAmount(accountExists, amount);
+            }
         }
+    }
+
+    public UpdateAmount = async (account: any, amount: number) => {
+        if (account.balance)
+            account.balance = roundNumber(account.balance + roundNumber(amount));
+        else
+            account.balance = amount;
+        return await this._update(account);
     }
 
 

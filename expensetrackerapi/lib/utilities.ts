@@ -262,3 +262,7 @@ export async function externalAPIRequest(url, options): Promise<any> {
 export function capitalize(str, lower = false) {
     return (lower ? str.toLowerCase() : str).replace(/(?:^|\s|["'([{])+\S/g, match => match.toUpperCase());
 }
+
+export function roundNumber(amount) {
+    return Math.round((amount + Number.EPSILON) * 100) / 100;
+}

@@ -51,90 +51,79 @@ router.get("/", async (request: express.Request, response: express.Response) => 
     }
 });
 
-router.post("/", async (request: express.Request, response: express.Response) => {
-    // #swagger.tags = ['Transactions']
-    //logger.info(request, "request body", "transaction/save", (request.body.Transaction && request.body.Transaction._id), "request", '5', request.body);
-    var transactionModel = new transaction.transactions(request);
 
-    try {
-        let result;
-        if (request.body.Transaction == null || request.body.Transaction == undefined) {
-            return response.json(response.json({ code: "-1", message: "Transaction json cannot be empty" }));
-        }
-        // request.body.User = await userModel.dataConversion(request.body.User, "projectX", "save");
-        let transactionBody = request.body.Transaction;
-        let validations = validation.SaveValidations(request.body, "Transaction");
-        if (validations.code == "-1") {
-            result = { code: "-1", message: validations.message };
-            return response.json(result);
-        } else {
-            //Added for user Save As Functionality 
-            if (transactionBody.changeCount == null || transactionBody.changeCount == 0) {
-                transactionBody.changeCount = 0;
-            }
-            transactionBody.tenantCode = request.tenant.code;
-            try {
-                if (transactionBody.changeCount == 0) {
-                    transactionBody.createdBy = request.body.user;
-                }
-                transactionBody.lastModifiedBy = request.body.user;
-                transactionBody.tenantCode = request.tenant.code;
-                if (transactionBody.type == 'Transfer') {
-                    result = await transactionModel.save(transactionBody);
-                } else {
-                    result = await transactionModel.save(transactionBody);
-                }
-                /*if (result.User) {
-                    result.User = await userModel.dataConversion(result.User, "tenant", "save");
-                }*/
-            } catch (ex) {
-                console.log(ex);
-                result = { code: "-1", message: "Error while saving Transaction ", error: ex };
-            }
-
-            if (result.code == "-1") {
-                if (result.error != undefined) {
-                    result.message = result.message + "; " + result.error;
-                }
-                logger.error(request, "Error while executing Transaction update error : " + result.message, "Transaction/save", request.body.Transaction && request.body.Transaction._id, "catch", '1', request.body, result.message);
-            }
-            // #swagger.responses[200] = { description: 'Transaction created successfully.' }
-            //logger.info(request, "Response", "Transaction/save", result._id, "response", '5', result);
-            return response.send(result);
-        }
-    } catch (ex) {
-        logger.error(request, "Error while executing Transaction Save  error : " + ex.toString(), "Transaction/save", request.body.Transaction && request.body.Transaction._id, "catch", '1', request.body, ex);
-        console.log(ex);
-        return response.send({ code: "-1", message: "Error while saving Transaction; " + ex });
-    }
-});
-
-router.delete("/remove", async (request: express.Request, response: express.Response) => {
+router.patch("/:transactionId", async (request: express.Request, response: express.Response) => {
     // #swagger.tags = ['Transactions']
     //logger.info(request, "request body", "user", "//", "request", '5', request.body);
     var transactionModel = new transaction.transactions(request);
+    var accountModel = new account.accounts(request);
     request.body.tenantId = request.tenant._id;
+    let reqParams: any = request.params;
     let reqUser: any = request.query;
     if (String.isNullOrWhiteSpace(reqUser.user)) {
         return response.send({ code: "-1", message: "user cannot be empty" });
-    } else if (request.query.objectKey == undefined && request.query.id == undefined) {
-        if (request.query.objectKey == undefined || String.isNullOrWhiteSpace(reqUser.objectKey)) {
-            return response.send({ code: "-1", message: "objectKey is missing" });
-        } else if (request.query.id == undefined || String.isNullOrWhiteSpace(reqUser.id)) {
-            return response.send({ code: "-1", message: "id is missing" });
-        }
+    }
+    if (reqParams.transactionId == null || reqParams.transactionId == undefined) {
+        return response.send({ code: "-1", message: "transactionId is missing" });
     }
     try {
-        let query;
-        if (request.query.objectKey) {
-            query = { objectCode: request.query.objectKey };
-        } else if (request.query.id) {
-            query = { _id: request.query.id };
+        var transactionObj = await transactionModel.findById(reqParams.transactionId);
+        var savedData = await transactionModel.save(request.body.transaction);
+        if (savedData == null) {
+            return response.json({ code: "-1", message: "Updating transcation failed." });
+        } else {
+            if (savedData.code == "0") {
+                let savedTransaction = savedData.Transaction;
+                if (transactionObj.fromAccountId != savedTransaction.fromAccountId) {
+                    await accountModel.UpdateBalance(transactionObj.fromAccountId, transactionObj.amount); // Revert previous fromAccount balance
+                    savedTransaction.fromAccountId = await accountModel.UpdateBalance(savedTransaction.fromAccountId, -savedTransaction.amount); // Apply new fromAccount balance
+                }
+                else {
+                    savedTransaction.fromAccountId = savedData['fromAccount'] = await accountModel.UpdateBalance(transactionObj.fromAccountId, transactionObj.amount - savedTransaction.amount);
+                }
+                if (transactionObj.toAccountId != savedTransaction.toAccountId) {
+                    await accountModel.UpdateBalance(transactionObj.toAccountId, -transactionObj.amount); // Revert previous fromAccount balance
+                    savedTransaction.toAccountId = await accountModel.UpdateBalance(savedTransaction.toAccountId, savedTransaction.amount); // Apply new fromAccount balance
+                }
+                else {
+                    savedTransaction.toAccountId = savedData['toAccount'] = await accountModel.UpdateBalance(transactionObj.toAccountId, savedTransaction.amount - transactionObj.amount);
+                }
+            }
+            //logger.info(request, "Response", "user", "/remove/", "response", '5', savedData);
+            return response.json(savedData);
         }
-        var deletedata = await transactionModel.remove(query);
+    }
+    catch (ex) {
+        logger.error(request, "Error while executing patch transcation error : " + ex.toString(), "transcation", "/remove/", "catch", '1', request.body, ex);
+        console.log(ex);
+        return response.json({ code: "-1", message: "Error while updating transcation." });
+    }
+});
+
+router.delete("/:transactionId", async (request: express.Request, response: express.Response) => {
+    // #swagger.tags = ['Transactions']
+    //logger.info(request, "request body", "user", "//", "request", '5', request.body);
+    var transactionModel = new transaction.transactions(request);
+    var accountModel = new account.accounts(request);
+    request.body.tenantId = request.tenant._id;
+    let reqParams: any = request.params;
+    let reqUser: any = request.query;
+    if (String.isNullOrWhiteSpace(reqUser.user)) {
+        return response.send({ code: "-1", message: "user cannot be empty" });
+    }
+    if (reqParams.transactionId == null || reqParams.transactionId == undefined) {
+        return response.send({ code: "-1", message: "transactionId is missing" });
+    }
+    try {
+        var transactionObj = await transactionModel.findById(reqParams.transactionId);
+        var deletedata = await transactionModel.removeObj(transactionObj);
         if (deletedata == null) {
             return response.json({ code: "-1", message: "deleting user id is not found." });
         } else {
+            if (deletedata.code == "0") {
+                deletedata['fromAccount'] = await accountModel.UpdateBalance(transactionObj.fromAccountId, transactionObj.amount);
+                deletedata['toAccount'] = await accountModel.UpdateBalance(transactionObj.toAccountId, transactionObj.amount * -1);
+            }
             //logger.info(request, "Response", "user", "/remove/", "response", '5', deletedata);
             return response.json(deletedata);
         }
@@ -146,8 +135,7 @@ router.delete("/remove", async (request: express.Request, response: express.Resp
     }
 });
 
-
-router.post("/insert", async (request: express.Request, response: express.Response) => {
+router.post("/", async (request: express.Request, response: express.Response) => {
     // #swagger.tags = ['Transactions']
     var transactionModel = new transaction.transactions(request);
     var accountModel = new account.accounts(request);
@@ -166,7 +154,7 @@ router.post("/insert", async (request: express.Request, response: express.Respon
             return response.json(response.json({ code: "-1", message: "Please provide the correct Amount" }));
         }
 
-        if (request.body.Transaction.catagory == null || request.body.Transaction.catagory == undefined){
+        if (request.body.Transaction.catagory == null || request.body.Transaction.catagory == undefined) {
             return response.json(response.json({ code: "-1", message: "Please provide the catagory. If no catagory create one." }));
         }
 
@@ -188,11 +176,11 @@ router.post("/insert", async (request: express.Request, response: express.Respon
                 }
                 transactionBody.lastModifiedBy = request.body.user;
                 transactionBody.tenantCode = request.tenant.code;
-                var fromAccount = await accountModel.UpdateAmount(transactionBody.fromAccountId, transactionBody.amount * -1);
-                var toAccount = await accountModel.UpdateAmount(transactionBody.toAccountId, transactionBody.amount);
                 result = await transactionModel.save(transactionBody);
-                result.fromAccount = fromAccount;
-                result.toAccount = toAccount;
+                if (result.code == "0") {
+                    result.fromAccount = await accountModel.UpdateBalance(transactionBody.fromAccountId, transactionBody.amount * -1);
+                    result.toAccount = await accountModel.UpdateBalance(transactionBody.toAccountId, transactionBody.amount);
+                }
             } catch (ex) {
                 console.log(ex);
                 result = { code: "-1", message: "Error while saving Transaction ", error: ex };

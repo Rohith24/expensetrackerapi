@@ -211,14 +211,6 @@ export class transactionFactory extends coreModule {
                 } else {
                     if (transactionExists.changeCount == changeCount) {
                         try {
-                            //Check whether user has permission to update
-                            //transactionExists = await this.ACLPrecedence(transactionExists, true);
-                            if (transactionExists.securityCode == null || transactionExists.securityCode < 7) {
-                                return { code: "-1", message: "You don't have access to perform this action." };
-                            }
-                            delete transactionExists.securityCode;
-                            delete transactionExists.precedenceAcl;
-
                             transactionObj.changeCount = transactionObj.changeCount + 1;
                             transactionObj._id = transactionExists._id;
                             transactionObj.createdBy = transactionObj.createdBy || transactionExists.createdBy;
@@ -243,17 +235,17 @@ export class transactionFactory extends coreModule {
 
     /**
     * remove transaction into mongodb
-    * @param  objectCode object
+    * @param  transactionId object
     * return  updated transaction
     */
-    public remove = async (objectCode: any) => {
+    public remove = async (transactionId: any) => {
         try {
             var model = await this.dal.model('transaction');
 
-            if (objectCode != null && objectCode != undefined) {
+            if (transactionId != null && transactionId != undefined) {
                 var retObj = null;
                 var query = {
-                    objectCode: objectCode
+                    _id: transactionId
                 };
                 retObj = await model.find(query, {});
                 if (retObj != null && retObj != undefined && retObj[0]) {
@@ -290,7 +282,52 @@ export class transactionFactory extends coreModule {
             }
         } catch (err) {
             console.log(err);
-            logger.error(this.request, "Error While Removing transaction in CoreEngine Module" + err.toString(), 'transaction', "transactionObject", "error", "1", objectCode, err);
+            logger.error(this.request, "Error While Removing transaction in CoreEngine Module" + err.toString(), 'transaction', "transactionObject", "error", "1", transactionId, err);
+            return { code: "-1", message: "Catch error:" + err.toString() };
+        }
+    }
+
+    /**
+* remove transaction into mongodb
+* @param  transcationObj object
+* return  updated transaction
+*/
+    public removeObj = async (transcationObj: any) => {
+        try {
+            var model = await this.dal.model('transaction');
+
+            if (transcationObj != null && transcationObj != undefined) {
+
+                /*if (retObj.deleteMark && retObj.changeCount != changeCount) { 
+                    return { code: "-1", message: "Concurrency issue occured in transaction.", transaction: retObj };
+                } */
+                if (transcationObj.deleteMark && transcationObj.deleteMark == 1) {
+                    return { code: "-1", message: "transaction has been already deleted." };
+                }
+                if (transcationObj.isActive && transcationObj.isActive == 0) {
+                    return { code: "-1", message: "transaction already exists and is inactive." };
+                }
+
+
+                transcationObj.isActive = 0;
+                transcationObj.deleteMark = 1;
+                if (transcationObj.changeCount) {
+                    transcationObj.changeCount = transcationObj.changeCount + 1;
+                } else {
+                    transcationObj.changeCount = 1;
+                }
+                transcationObj.tenantId = this.request.tenant._id;
+                var resData = await model.findByIdAndUpdate(transcationObj);
+
+                return { code: "0", message: "Transaction deleted successfully", transaction: resData };
+
+            } else {
+                return { code: "-1", message: "Transaction with given id does not exist." };
+            }
+            
+        } catch (err) {
+            console.log(err);
+            logger.error(this.request, "Error While Removing transaction in CoreEngine Module" + err.toString(), 'transaction', "transactionObject", "error", "1", transcationObj._id, err);
             return { code: "-1", message: "Catch error:" + err.toString() };
         }
     }
@@ -365,36 +402,32 @@ export class transactionFactory extends coreModule {
 
                 var toAccount = await accountModel.findOne({ "name": { "$regex": `^${transactionObj['To Account']}$`, "$options": "i" } });
                 var fromAccount = await accountModel.findOne({ "name": { "$regex": `^${transactionObj['From Account']}$`, "$options": "i" } });
-                var amount = this.roundNumber(transactionObj['Amount']);
+                var amount = transactionObj['Amount'];
                 obj["amount"] = Math.abs(amount);
                 if (transactionType == TransactionType.Credit) {
                     if (toAccount) {
                         obj["toAccountId"] = toAccount._id;
-                        toAccount.balance = this.roundNumber(parseFloat(toAccount.balance) + amount) ;
-                        accountModel._update(toAccount);
+                        await accountModel.UpdateAmount(toAccount, amount);
                     } else {
                         obj["toAccountId"] = transactionObj['To Account'];
                     }
                 } else if (transactionType == TransactionType.Debit) {
                     if (toAccount) {
                         obj["fromAccountId"] = toAccount._id;
-                        toAccount.balance = this.roundNumber(parseFloat(toAccount.balance) + amount);
-                        accountModel._update(toAccount);
+                        await accountModel.UpdateAmount(toAccount, amount);
                     } else {
                         obj["fromAccountId"] = transactionObj['To Account'];
                     }
                 } else if (transactionType == TransactionType.Transfer) {
                     if (toAccount) {
                         obj["toAccountId"] = toAccount._id;
-                        toAccount.balance = this.roundNumber(parseFloat(toAccount.balance) + amount);
-                        accountModel._update(toAccount);
+                        await accountModel.UpdateAmount(toAccount, amount);
                     } else {
                         obj["toAccountId"] = transactionObj['To Account'];
                     }
                     if (fromAccount) {
                         obj["fromAccountId"] = fromAccount._id;
-                        fromAccount.balance = this.roundNumber(parseFloat(fromAccount.balance) - amount);
-                        accountModel._update(fromAccount);
+                        await accountModel.UpdateAmount(fromAccount, amount);
                     } else {
                         obj["fromAccountId"] = transactionObj['From Account'];
                     }
@@ -429,10 +462,5 @@ export class transactionFactory extends coreModule {
             console.log('error in insertAccountData: ' + ex.toString() + '\nMessage:' + msg);
             return { code: '-1', message: 'Error while inserting transaction. Details: ' + ex.toString() };
         }
-    }
-
-    public roundNumber = (amount) => {
-        return Math.round((amount + Number.EPSILON) * 100) / 100;
-
     }
 }

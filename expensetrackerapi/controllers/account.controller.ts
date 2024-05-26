@@ -5,6 +5,7 @@ import config = require('../config');
 import validation = require('../modules/admin/validation');
 
 import express = require('express');
+import { transaction } from "../modules/transactions";
 var router = express.Router();
 export = router;
 
@@ -57,20 +58,48 @@ router.get("/", async (request: express.Request, response: express.Response) => 
 router.get("/:accountId", async (request: express.Request, response: express.Response) => {
     // #swagger.tags = ['Accounts']
 
-    let reqQuery: any = request.params;
-    if (String.isNullOrWhiteSpace(reqQuery.accountId)) {
+    let reqParams: any = request.params;
+    if (String.isNullOrWhiteSpace(reqParams.accountId)) {
         return response.send({ code: "-1", message: "Account ID is empty" });
     }
+    let reqQuery: any = request.query;
 
     let result;
     var accountModel = new account.accounts(request);
+    var transcationModel = new transaction.transactions(request);
     try {
-        let accountData = await accountModel.findById(reqQuery.accountId);
+        let accountData = await accountModel.findById(reqParams.accountId);
+
         if (accountData == null) {
-            return response.send({ code: "-1", message: `account with ID ${reqQuery.accountId} not available` });
+            return response.send({ code: "-1", message: `account with ID ${reqParams.accountId} not available` });
         }
 
         if (accountData && accountData != null) {
+            if (reqQuery.includeTransactions = 1) {
+                let query = { $or: [{ fromAccountId: reqParams.accountId }, { toAccountId: reqParams.accountId }], deleteMark: 0 };
+                let transactions = await transcationModel.paginate(query, 0, 10, { transactionDate: -1 }, {
+                    transactionDate: 1,
+                    amount: 1,
+                    catagory: 1,
+                    accountId: reqParams.accountId,
+                    Type: {
+                        $cond: [
+                            { $eq: ["$fromAccountId", reqParams.accountId] }, // Condition 1
+                            "Debit",                         // If Condition 1 is true
+                            {
+                                $cond: [
+                                    { $eq: ["$toAccountId", reqParams.accountId] }, // Condition 2
+                                    "Credit",                     // If Condition 2 is true
+                                    null                          // If neither condition is true
+                                ]
+                            }
+                        ]
+                    }
+                });
+                let transactionCount = await transcationModel.count(query)
+                accountData.Transactions = transactions;
+                accountData.TransactionCount = transactionCount;
+            }
             result = { code: "0", message: "account successfully retrieved", accounts: accountData };
         }
         else {
@@ -145,8 +174,6 @@ router.patch("/:accountId", async (request: express.Request, response: express.R
     // #swagger.tags = ['Accounts']
 
     var accountModel = new account.accounts(request);
-    let reqQuery: any = request.params;
-
     try {
         let result;
         if (request.body.account == null || request.body.account == undefined) {
