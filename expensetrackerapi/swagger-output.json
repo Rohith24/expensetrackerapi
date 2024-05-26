@@ -549,7 +549,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "tenantId": {
+                "transaction": {
                   "example": "any"
                 }
               }
@@ -578,18 +578,6 @@
             "name": "user",
             "in": "query",
             "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "tenantId": {
-                  "example": "any"
-                }
-              }
-            }
           }
         ],
         "responses": {

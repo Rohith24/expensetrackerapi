@@ -57,7 +57,6 @@ router.patch("/:transactionId", async (request: express.Request, response: expre
     //logger.info(request, "request body", "user", "//", "request", '5', request.body);
     var transactionModel = new transaction.transactions(request);
     var accountModel = new account.accounts(request);
-    request.body.tenantId = request.tenant._id;
     let reqParams: any = request.params;
     let reqUser: any = request.query;
     if (String.isNullOrWhiteSpace(reqUser.user)) {
@@ -105,7 +104,6 @@ router.delete("/:transactionId", async (request: express.Request, response: expr
     //logger.info(request, "request body", "user", "//", "request", '5', request.body);
     var transactionModel = new transaction.transactions(request);
     var accountModel = new account.accounts(request);
-    request.body.tenantId = request.tenant._id;
     let reqParams: any = request.params;
     let reqUser: any = request.query;
     if (String.isNullOrWhiteSpace(reqUser.user)) {
