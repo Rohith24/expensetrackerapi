@@ -249,32 +249,16 @@ export async function externalAPIRequest(url, options): Promise<any> {
     });
 }
 
-export function getPreviousFinancialYear(year) {
-    let splitYearArray = year.split('-');
-    splitYearArray[0] = Number.parseInt(splitYearArray[0]) - 1;
-    splitYearArray[1] = Number.parseInt(splitYearArray[1]) - 1;
-    return splitYearArray.join('-');
-}
-
-export function getNextFinancialYear(year) {
-    let splitYearArray = year.split('-');
-    splitYearArray[0] = Number.parseInt(splitYearArray[0]) + 1;
-    splitYearArray[1] = Number.parseInt(splitYearArray[1]) + 1;
-    return splitYearArray.join('-');
-}
-
-export function getFinancialYearFromDate(date) {
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1; // Adding 1 because getMonth() returns zero-based month (0-11)
-
-    let financialYear;
-    if (month >= 4) {
-        // If the month is April or later, it falls into the next financial year
-        financialYear = `${year}-${(year + 1).toString().slice(-2)}`;
-    } else {
-        // If the month is before April, it falls into the current financial year
-        financialYear = `${year - 1}-${year.toString().slice(-2)}`;
-    }
-
-    return financialYear;
+/**
+ * Capitalizes first letters of words in string.
+ * @param {string} str String to be modified
+ * @param {boolean=false} lower Whether all other letters should be lowercased
+ * @return {string}
+ * @usage
+ *   capitalize('fix this string');     // -> 'Fix This String'
+ *   capitalize('javaSCrIPT');          // -> 'JavaSCrIPT'
+ *   capitalize('javaSCrIPT', true);    // -> 'Javascript'
+ */
+export function capitalize(str, lower = false) {
+    return (lower ? str.toLowerCase() : str).replace(/(?:^|\s|["'([{])+\S/g, match => match.toUpperCase());
 }

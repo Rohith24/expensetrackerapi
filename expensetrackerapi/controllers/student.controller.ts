@@ -47,7 +47,6 @@ router.get("/retrieve", async (request: express.Request, response: express.Respo
             return response.send({ code: "-1", message: `You don't have permission to view students.'` });
         }
 
-        await studentModel.calculatePendingFees(studentData, reqQuery.financialYear);
 
         if (studentData && studentData != null) {
             result = { code: "0", message: "Students successfully retrieved", Students: studentData };
@@ -240,7 +239,6 @@ router.get("/viewstudenttransactions", async (request: express.Request, response
         studentData = studentData[0];
 
         let organization = await organizationsModel.findOne({ organizationCode: studentData.organizationCode });
-        studentData = await studentsModel.calculateStudentPendingFees(studentData, organization, null);
         let tranactionsData = await transactionsModel.find(query);
         if (tranactionsData == null) {
             return response.send({ code: "-1", message: `No transactions found for ${reqQuery.studentId}`, student: studentData });

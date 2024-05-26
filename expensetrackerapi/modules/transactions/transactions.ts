@@ -5,6 +5,7 @@ import user = require('../users');
 
 import mongoose = require('mongoose');
 import { account } from '../account';
+import { capitalize } from '../../lib/utilities';
 
 var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
@@ -360,10 +361,10 @@ export class transactionFactory extends coreModule {
                         obj["transactionDate"] = date;
                     }
                 }
-                let transactionType = transactionObj['Transaction Type'];
+                let transactionType = capitalize(transactionObj['Transaction Type']);
 
-                var toAccount = await accountModel.findOne({ "name": { "$regex": transactionObj['To Account'], "$options": "i" } });
-                var fromAccount = await accountModel.findOne({ "name": { "$regex": transactionObj['From Account'], "$options": "i" } });
+                var toAccount = await accountModel.findOne({ "name": { "$regex": `^${transactionObj['To Account']}$`, "$options": "i" } });
+                var fromAccount = await accountModel.findOne({ "name": { "$regex": `^${transactionObj['From Account']}$`, "$options": "i" } });
                 var amount = this.roundNumber(transactionObj['Amount']);
                 obj["amount"] = Math.abs(amount);
                 if (transactionType == TransactionType.Credit) {

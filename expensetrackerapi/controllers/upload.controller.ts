@@ -69,6 +69,22 @@ function uploadFile(request, response, next) {
     }
 }
 
+function extractData(sheetName, workbook) {
+    const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+    const headers = jsonData[0].filter(header => header.trim() !== '');
+
+    const data = jsonData.slice(1).map(row => {
+        const rowData = {};
+        headers.forEach((header, index) => {
+            rowData[header] = row[index];
+        });
+        return rowData;
+    });
+
+    return data;
+}
+
+
 /**
  *   upload service
  *   POST method
@@ -84,30 +100,23 @@ router.post("/:dataType", uploadFile, async (req: express.Request, response: exp
             console.log(os.type());
             const workbook = xlsx.readFile(req.file.path);
             const sheet_name_list = workbook.SheetNames;
-            var sheetName;
             if (dataType == 'transactions') {
-                sheetName = sheet_name_list[1]
-            } else {
-                sheetName = sheet_name_list[0];
-            }
-            const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
-            const headers = jsonData[0].filter(header => header.trim() !== '');
-
-            const data = jsonData.slice(1).map(row => {
-                const rowData = {};
-                headers.forEach((header, index) => {
-                    rowData[header] = row[index];
-                });
-                return rowData;
-            });
-            if (dataType == 'transactions') {
+                var data = extractData(sheet_name_list[1], workbook);
                 let transactionModel = new transaction.transactions(req);
                 result = await transactionModel.insertTransactionsData(data);
             } else if (dataType == 'accounts') {
+                var data = extractData(sheet_name_list[0], workbook);
                 let accountModel = new account.accounts(req);
                 result = await accountModel.insertAccountData(data);
             } else {
-                result = { code: "-1", message: `Only supports upload of 'transactions' and 'accounts'` };
+                var accountData = extractData(sheet_name_list[0], workbook);
+                let accountModel = new account.accounts(req);
+                result = { code: "0" };
+                result.Account = await accountModel.insertAccountData(accountData);
+
+                var data = extractData(sheet_name_list[1], workbook);
+                let transactionModel = new transaction.transactions(req);
+                result.Transaction = await transactionModel.insertTransactionsData(data);
             }
         } else {
             result = { code: "-1", message: `Error while uploading to ${dataType}` };
