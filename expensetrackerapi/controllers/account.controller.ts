@@ -31,7 +31,9 @@ router.get("/", async (request: express.Request, response: express.Response) => 
         } 
         if (!String.isNullOrWhiteSpace(reqQuery.deleteMark)) {
             query['deleteMark'] = request.query.deleteMark;
-        } 
+        } else {
+            query['deleteMark'] = 0;
+        }
         let accountData = await accountModel.find(query);
         if (accountData == null) {
             return response.send({ code: "-1", message: `accounts not available with given search` });
@@ -100,7 +102,7 @@ router.get("/:accountId", async (request: express.Request, response: express.Res
                 accountData.Transactions = transactions;
                 accountData.TransactionCount = transactionCount;
             }
-            result = { code: "0", message: "account successfully retrieved", accounts: accountData };
+            result = { code: "0", message: "account successfully retrieved", account: accountData };
         }
         else {
             result = { code: "-1", message: `account not available` };
@@ -141,6 +143,9 @@ router.post("/", async (request: express.Request, response: express.Response) =>
             try {
                 if (accountBody.changeCount == 0) {
                     accountBody.createdBy = request.body.user;
+                }
+                if (accountBody.balance == null || accountBody.balance == undefined) {
+                    accountBody.balance = accountBody.initBalance;
                 }
                 accountBody.lastModifiedBy = request.body.user;
                 accountBody.tenantCode = "BudgetTracker";
