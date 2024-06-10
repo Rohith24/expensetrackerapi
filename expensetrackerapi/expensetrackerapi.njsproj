@@ -43,7 +43,10 @@
   <ItemGroup>
     <TypeScriptCompile Include="appStart\extensions.ts" />
     <TypeScriptCompile Include="appStart\routing.ts" />
+    <TypeScriptCompile Include="controllers\budget.controller.ts" />
     <TypeScriptCompile Include="controllers\account.controller.ts" />
+    <TypeScriptCompile Include="modules\budget\budget.ts" />
+    <TypeScriptCompile Include="modules\budget\index.ts" />
     <TypeScriptCompile Include="modules\bank\bank.ts" />
     <TypeScriptCompile Include="modules\bank\index.ts" />
     <TypeScriptCompile Include="modules\account\account.ts" />
@@ -88,6 +91,7 @@
     <Folder Include="controllers\" />
     <Folder Include="lib\" />
     <Folder Include="modules\" />
+    <Folder Include="modules\budget\" />
     <Folder Include="modules\bank\" />
     <Folder Include="modules\admin\" />
     <Folder Include="modules\audit\" />

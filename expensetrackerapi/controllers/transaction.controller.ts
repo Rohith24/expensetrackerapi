@@ -6,6 +6,7 @@ import config = require('../config');
 import validation = require('../modules/admin/validation');
 
 import express = require('express');
+import { budget } from "../modules/budget";
 var router = express.Router();
 export = router;
 
@@ -137,6 +138,7 @@ router.post("/", async (request: express.Request, response: express.Response) =>
     // #swagger.tags = ['Transactions']
     var transactionModel = new transaction.transactions(request);
     var accountModel = new account.accounts(request);
+    var budgetModel = new budget.budgets(request);
 
     try {
         let result;
@@ -178,6 +180,18 @@ router.post("/", async (request: express.Request, response: express.Response) =>
                 if (result.code == "0") {
                     result.fromAccount = await accountModel.UpdateBalance(transactionBody.fromAccountId, transactionBody.amount * -1);
                     result.toAccount = await accountModel.UpdateBalance(transactionBody.toAccountId, transactionBody.amount);
+                    let amount, isTransfer = 0;
+                    if (request.body.Transaction.fromAccountId == null || request.body.Transaction.fromAccountId == undefined) {
+                        isTransfer += 1;
+                        amount = transactionBody.amount * -1;
+                    }
+                    if (request.body.Transaction.toAccountId == null || request.body.Transaction.toAccountId == undefined) {
+                        isTransfer += 1;
+                        amount = transactionBody.amount * 1;
+                    }
+                    if (isTransfer === 1)
+                        result.budget = await budgetModel.UpdateBalance(transactionBody.category, amount);
+
                 }
             } catch (ex) {
                 console.log(ex);
