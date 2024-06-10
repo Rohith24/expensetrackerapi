@@ -26,7 +26,7 @@ var transactionsSchema = new Schema({
     "amount": { type: Number, required: true },
     "subTranscationIds": [Schema.Types.ObjectId],
 
-    "catagory": { type: String, index: true },
+    "category": { type: String, index: true },
     "details": { type: String },
     "additionalDetails": { type: String },
     "whom": { type: String },

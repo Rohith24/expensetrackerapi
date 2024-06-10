@@ -152,8 +152,8 @@ router.post("/", async (request: express.Request, response: express.Response) =>
             return response.json(response.json({ code: "-1", message: "Please provide the correct Amount" }));
         }
 
-        if (request.body.Transaction.catagory == null || request.body.Transaction.catagory == undefined) {
-            return response.json(response.json({ code: "-1", message: "Please provide the catagory. If no catagory create one." }));
+        if (request.body.Transaction.category == null || request.body.Transaction.category == undefined) {
+            return response.json(response.json({ code: "-1", message: "Please provide the category. If no category create one." }));
         }
 
         let transactionBody = request.body.Transaction;

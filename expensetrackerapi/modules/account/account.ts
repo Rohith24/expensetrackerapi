@@ -341,7 +341,7 @@ export class accountFactory extends coreModule {
 
     public UpdateAmount = async (account: any, amount: number) => {
         if (account.balance)
-            account.balance = roundNumber(account.balance + roundNumber(amount));
+            account.balance = roundNumber(account.balance + roundNumber(amount * 1));
         else
             account.balance = amount;
         return await this._update(account);
