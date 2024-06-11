@@ -82,17 +82,23 @@ router.get("/:accountId", async (request: express.Request, response: express.Res
                 let transactions = await transcationModel.paginate(query, 0, 10, { transactionDate: -1 }, {
                     transactionDate: 1,
                     amount: 1,
-                    catagory: 1,
+                    category: 1,
                     accountId: reqParams.accountId,
-                    Type: {
+                    type: {
                         $cond: [
-                            { $eq: ["$fromAccountId", reqParams.accountId] }, // Condition 1
-                            "Debit",                         // If Condition 1 is true
+                            { $and: [{ $ifNull: ["$fromAccountId", false] }, { $ifNull: ["$toAccountId", false] }] }, // Both fromAccountId and toAccountId have values
+                            "Transfer", // If true, return 'Transfer'
                             {
                                 $cond: [
-                                    { $eq: ["$toAccountId", reqParams.accountId] }, // Condition 2
-                                    "Credit",                     // If Condition 2 is true
-                                    null                          // If neither condition is true
+                                    { $ifNull: ["$toAccountId", false] }, // Only toAccountId has a value
+                                    "Credit", // If true, return 'Credit'
+                                    {
+                                        $cond: [
+                                            { $ifNull: ["$fromAccountId", false] }, // Only fromAccountId has a value
+                                            "Debit", // If true, return 'Debit'
+                                            "Unknown" // Fallback value if none of the conditions match
+                                        ]
+                                    }
                                 ]
                             }
                         ]

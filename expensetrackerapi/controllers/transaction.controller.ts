@@ -53,6 +53,67 @@ router.get("/", async (request: express.Request, response: express.Response) => 
 });
 
 
+router.get("/latest", async (request: express.Request, response: express.Response) => {
+    // #swagger.tags = ['Transactions']
+    let result;
+    var transactionModel = new transaction.transactions(request);
+    try {
+        let query = {
+            deleteMark: 0
+        };
+        let transactionData = await transactionModel.paginate(query, 0, 10, {
+            transactionDate: -1,
+            dateCreated: -1
+        }, {
+            transactionDate: 1,
+            amount: 1,
+            category: 1,
+            details: 1,
+            fromAccountId: 1,
+            toAccountId: 1,
+            type: {
+                $cond: [
+                    { $and: [{ $ifNull: ["$fromAccountId", false] }, { $ifNull: ["$toAccountId", false] }] }, // Both fromAccountId and toAccountId have values
+                    "Transfer", // If true, return 'Transfer'
+                    {
+                        $cond: [
+                            { $ifNull: ["$toAccountId", false] }, // Only toAccountId has a value
+                            "Credit", // If true, return 'Credit'
+                            {
+                                $cond: [
+                                    { $ifNull: ["$fromAccountId", false] }, // Only fromAccountId has a value
+                                    "Debit", // If true, return 'Debit'
+                                    "Unknown" // Fallback value if none of the conditions match
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        });
+        if (transactionData == null) {
+            return response.send({ code: "-1", message: `transactions not available with given search` });
+        }
+
+        if (transactionData && transactionData != null) {
+            result = { code: "0", message: "transaction successfully retrieved", transactions: transactionData };
+        }
+        else {
+            result = { code: "-1", message: `transaction not available` };
+        }
+        // #swagger.responses[200] = { description: 'transaction retrieved successfully.' }
+        //logger.info(request, "Response", "transactions/Retrieve", '', "response", '5', result);
+        return response.send(result);
+    } catch (ex) {
+        //let mongoLogger = new loggerApi.logger(request);
+        //mongoLogger.pustToQueue(request.body, 'user', request.query.transactionId, 'fetch', ex.toString());
+        logger.error(request, "Error while executing transaction retrieve  error : " + ex.toString(), "transactions/Retrieve", request.query.transactionId, "catch", '1', request.query, ex);
+        console.log(ex);
+        return response.send({ code: "-1", message: `transactions not available` });
+    }
+});
+
+
 router.patch("/:transactionId", async (request: express.Request, response: express.Response) => {
     // #swagger.tags = ['Transactions']
     //logger.info(request, "request body", "user", "//", "request", '5', request.body);
