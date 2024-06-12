@@ -1,6 +1,4 @@
 import { transaction } from "../modules/transactions";
-import { user } from "../modules/users";
-import { organization } from "../modules/organization";
 import logger = require('./logger');
 const multer = require('multer');
 const fs = require('fs');
@@ -9,7 +7,7 @@ const os = require("os");
 const xlsx = require('xlsx');
 
 import express = require('express');
-import { admin } from "../modules/admin";
+import { budget } from "../modules/budget";
 import { account } from "../modules/account";
 var router = express.Router();
 export = router;
@@ -110,9 +108,12 @@ router.post("/:dataType", uploadFile, async (req: express.Request, response: exp
                 result = await accountModel.insertAccountData(data);
             } else {
                 var accountData = extractData(sheet_name_list[0], workbook);
+                var budgetData = extractData(sheet_name_list[2], workbook);
                 let accountModel = new account.accounts(req);
+                let budgetModel = new budget.budgets(req);
                 result = { code: "0" };
                 result.Account = await accountModel.insertAccountData(accountData);
+                result.Budgets = await budgetModel.insertBudgetData(budgetData);
 
                 var data = extractData(sheet_name_list[1], workbook);
                 let transactionModel = new transaction.transactions(req);

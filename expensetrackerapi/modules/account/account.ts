@@ -1,13 +1,9 @@
 import express = require('express');
 import coreModule = require('../coreModule');
 import logger = require('../../controllers/logger');
-import user = require('../users');
 
 import mongoose = require('mongoose');
-import { admin } from '../admin';
-import { roundNumber } from '../../lib/utilities';
-const uuid = require('uuid');
-const moment = require('moment');
+import { sum } from '../../lib/utilities';
 
 var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
@@ -341,7 +337,7 @@ export class accountFactory extends coreModule {
 
     public UpdateAmount = async (account: any, amount: number) => {
         if (account.balance)
-            account.balance = roundNumber(account.balance + roundNumber(amount * 1));
+            account.balance = sum(account.balance, amount);
         else
             account.balance = amount;
         return await this._update(account);

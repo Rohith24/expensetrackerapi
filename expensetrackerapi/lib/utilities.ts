@@ -266,3 +266,10 @@ export function capitalize(str, lower = false) {
 export function roundNumber(amount) {
     return Math.round((amount + Number.EPSILON) * 100) / 100;
 }
+
+
+export function sum(num1: any, num2: any) : number {
+    num1 = Number.parseFloat(num1)
+    num2 = Number.parseFloat(num2)
+    return roundNumber(roundNumber(num1) + roundNumber(num2));
+}

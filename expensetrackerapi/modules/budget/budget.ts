@@ -3,7 +3,7 @@ import coreModule = require('../coreModule');
 import logger = require('../../controllers/logger');
 
 import mongoose = require('mongoose');
-import { roundNumber } from '../../lib/utilities';
+import { sum } from '../../lib/utilities';
 
 var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
@@ -321,20 +321,39 @@ export class budgetFactory extends coreModule {
         return await resData;
     }
 
-    public UpdateBalance = async (budgetId: any, amount: number) => {
-        if (budgetId != null && budgetId != undefined) {
-            var accountExists = await this.findById(budgetId);
-            if (accountExists) {
-                return await this.UpdateAmount(accountExists, amount);
-            }
+    public insertBudgetData = async (budgetData) => {
+        let msg = "";
+        try {
+            var budgets = budgetData.map(bud => (
+                 {
+                    name: bud['Name'],
+                    amount: 0,
+                    tillNow: 0,
+                    createdBy: this.request?.currentUser?.userCode || "crradmin",
+                    lastModifiedBy: this.request?.currentUser?.userCode || "crradmin",
+                    tenantCode: "BudgetTracker"
+                }));
+            return this.insertMany(budgets);
+        } catch (ex) {
+            console.log('error in insertBudgetData: ' + ex.toString() + '\nMessage:' + msg);
+            return { code: '-1', message: 'Error while inserting budgets. Details: ' + ex.toString() };
         }
     }
 
-    public UpdateAmount = async (account: any, amount: number) => {
-        if (account.tillNow)
-            account.tillNow = roundNumber(account.tillNow + roundNumber(amount * 1));
+    public UpdateAmountById = async (budgetId: any, amount: number) => {
+        if (budgetId != null && budgetId != undefined) {
+            var budgetExists = await this.findById(budgetId);
+            if (budgetExists) {
+                return await this.UpdateAmount(budgetExists, amount);
+            }
+        }
+    }
+ 
+    public UpdateAmount = async (budget: any, amount: number) => {
+        if (budget.tillNow)
+            budget.tillNow = sum(budget.tillNow, amount);
         else
-            account.tillNow = amount;
-        return await this._update(account);
+            budget.tillNow = amount;
+        return await this._update(budget);
     }
 }

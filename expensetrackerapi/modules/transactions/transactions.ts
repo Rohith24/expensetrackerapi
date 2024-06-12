@@ -1,7 +1,7 @@
 import express = require('express');
 import coreModule = require('../coreModule');
 import logger = require('../../controllers/logger');
-import user = require('../users');
+import { budget } from '../budget';
 
 import mongoose = require('mongoose');
 import { account } from '../account';
@@ -354,6 +354,27 @@ export class transactionFactory extends coreModule {
     }
 
     /**
+      * get transaction from database
+      * @param query query to get data from database
+      * @param skip skip
+      * @param limit limit
+      * @param sort sort
+      * @param projection optional fields to return
+      * return transaction from database
+      */
+    public aggregate = async (query: any, projection?: any) => {
+        try {
+            query = query || {};
+            projection = projection || {};
+            let model = await this.dal.model('transaction');
+            let ret = await model.aggregate(query, projection);
+            return ret;
+        } catch (ex) {
+            logger.error(this.request, "Error while executing paginate : " + ex.toString(), 'transaction', query, "catch", '1', query, ex);
+        }
+    }
+
+    /**
       * get transaction count from database
       * @param query  query
       * return transaction count from database
@@ -379,70 +400,82 @@ export class transactionFactory extends coreModule {
     public insertTransactionsData = async (transactionData) => {
         let msg = "";
         let accountModel = new account.accounts(this.request);
+        let budgetModel = new budget.budgets(this.request);
         try {
             var insertedCount = 0;
             var updatedCount = 0;
             for (let transactionObj of transactionData || []) {
                 let currentMessage = ""
-                let obj: any = {};
-                if (transactionObj['Date']) {
-                    try {
-                        obj["transactionDate"] = new Date((transactionObj['Date'] - (25567 + 2)) * 86400 * 1000);
+                try {
+                    let obj: any = {};
+                    if (transactionObj['Date']) {
+                        try {
+                            obj["transactionDate"] = new Date((transactionObj['Date'] - (25567 + 2)) * 86400 * 1000);
+                        }
+                        catch (Ex) {
+                            var dateString = transactionObj['Date'];// "01012023";
+                            var year = dateString.substr(4, 4);
+                            var month = dateString.substr(2, 2) - 1; // Month is zero-based in JavaScript Date
+                            var day = dateString.substr(0, 2);
+                            var date = new Date(year, month, day);
+                            obj["transactionDate"] = date;
+                        }
                     }
-                    catch (Ex) {
-                        var dateString = transactionObj['Date'];// "01012023";
-                        var year = dateString.substr(4, 4);
-                        var month = dateString.substr(2, 2) - 1; // Month is zero-based in JavaScript Date
-                        var day = dateString.substr(0, 2);
-                        var date = new Date(year, month, day);
-                        obj["transactionDate"] = date;
-                    }
-                }
-                let transactionType = capitalize(transactionObj['Transaction Type']);
+                    let transactionType = capitalize(transactionObj['Transaction Type']);
 
-                var toAccount = await accountModel.findOne({ "name": { "$regex": `^${transactionObj['To Account']}$`, "$options": "i" } });
-                var fromAccount = await accountModel.findOne({ "name": { "$regex": `^${transactionObj['From Account']}$`, "$options": "i" } });
-                var amount = transactionObj['Amount'];
-                obj["amount"] = Math.abs(amount);
-                if (transactionType == TransactionType.Credit) {
-                    if (toAccount) {
-                        obj["toAccountId"] = toAccount._id;
-                        await accountModel.UpdateAmount(toAccount, amount);
-                    } else {
-                        obj["toAccountId"] = transactionObj['To Account'];
+                    var toAccount = await accountModel.findOne({ "name": { "$regex": `^${transactionObj['To Account']}$`, "$options": "i" } });
+                    var fromAccount = await accountModel.findOne({ "name": { "$regex": `^${transactionObj['From Account']}$`, "$options": "i" } });
+                    var budgetDetails = await budgetModel.findOne({ "name": { "$regex": `^${transactionObj['Category']}$`, "$options": "i" } });
+                    var amount = transactionObj['Amount'];
+                    obj["amount"] = Math.abs(amount);
+                    
+                    if (transactionType == TransactionType.Credit) {
+                        if (toAccount) {
+                            obj["toAccountId"] = toAccount._id;
+                            await accountModel.UpdateAmount(toAccount, amount);
+                        } else {
+                            obj["toAccountId"] = transactionObj['To Account'];
+                        }
+                    } else if (transactionType == TransactionType.Debit) {
+                        if (toAccount) {
+                            obj["fromAccountId"] = toAccount._id;
+                            await accountModel.UpdateAmount(toAccount, amount);
+                        } else {
+                            obj["fromAccountId"] = transactionObj['To Account'];
+                        }
+                    } else if (transactionType == TransactionType.Transfer) {
+                        if (toAccount) {
+                            obj["toAccountId"] = toAccount._id;
+                            await accountModel.UpdateAmount(toAccount, amount);
+                        } else {
+                            obj["toAccountId"] = transactionObj['To Account'];
+                        }
+                        if (fromAccount) {
+                            obj["fromAccountId"] = fromAccount._id;
+                            await accountModel.UpdateAmount(fromAccount, amount * -1);
+                        } else {
+                            obj["fromAccountId"] = transactionObj['From Account'];
+                        }
                     }
-                } else if (transactionType == TransactionType.Debit) {
-                    if (toAccount) {
-                        obj["fromAccountId"] = toAccount._id;
-                        await accountModel.UpdateAmount(toAccount, amount);
+                    if (budgetDetails) {
+                        await budgetModel.UpdateAmount(budgetDetails, amount);
+                        obj["category"] = budgetDetails._id;
                     } else {
-                        obj["fromAccountId"] = transactionObj['To Account'];
+                        obj["category"] = transactionObj['Category'];
                     }
-                } else if (transactionType == TransactionType.Transfer) {
-                    if (toAccount) {
-                        obj["toAccountId"] = toAccount._id;
-                        await accountModel.UpdateAmount(toAccount, amount);
-                    } else {
-                        obj["toAccountId"] = transactionObj['To Account'];
-                    }
-                    if (fromAccount) {
-                        obj["fromAccountId"] = fromAccount._id;
-                        await accountModel.UpdateAmount(fromAccount, amount);
-                    } else {
-                        obj["fromAccountId"] = transactionObj['From Account'];
-                    }
-                }
-                obj["category"] = transactionObj['Category'];
-                obj["details"] = transactionObj['Details'];
-                obj["whom"] = transactionObj['Whom'];
-                obj["additionalDetails"] = transactionObj['SubDetails'];
-                obj["createdBy"] = this.request?.currentUser?.userCode || "crradmin";
-                obj["lastModifiedBy"] = this.request?.currentUser?.userCode || "crradmin";
-                obj["tenantCode"] = "BudgetTracker";
+                    obj["details"] = transactionObj['Details'];
+                    obj["whom"] = transactionObj['Whom'];
+                    obj["additionalDetails"] = transactionObj['SubDetails'];
+                    obj["createdBy"] = this.request?.currentUser?.userCode || "crradmin";
+                    obj["lastModifiedBy"] = this.request?.currentUser?.userCode || "crradmin";
+                    obj["tenantCode"] = "BudgetTracker";
                 
-                let transactionData = await this._create(obj);
-                insertedCount++;
-
+                    let transactionData = await this._create(obj);
+                    insertedCount++;
+                } catch (ex) {
+                    currentMessage = ex.toString();
+                    console.log('error in insertAccountData: ' + ex.toString() + '\nMessage:' + msg);
+                }
                 if (currentMessage) {
                     msg += `\n${transactionObj}: \n` + currentMessage + "\n";
                 }

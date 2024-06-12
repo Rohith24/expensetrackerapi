@@ -251,7 +251,7 @@ router.post("/", async (request: express.Request, response: express.Response) =>
                         amount = transactionBody.amount * 1;
                     }
                     if (isTransfer === 1)
-                        result.budget = await budgetModel.UpdateBalance(transactionBody.category, amount);
+                        result.budget = await budgetModel.UpdateAmountById(transactionBody.category, amount);
 
                 }
             } catch (ex) {
