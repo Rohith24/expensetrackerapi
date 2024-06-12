@@ -107,7 +107,7 @@ router.get("/latest", async (request: express.Request, response: express.Respons
     } catch (ex) {
         //let mongoLogger = new loggerApi.logger(request);
         //mongoLogger.pustToQueue(request.body, 'user', request.query.transactionId, 'fetch', ex.toString());
-        logger.error(request, "Error while executing transaction retrieve  error : " + ex.toString(), "transactions/Retrieve", request.query.transactionId, "catch", '1', request.query, ex);
+        logger.error(request, "Error while executing transaction retrieve  error : " + ex.toString(), "transactions/latest", "latest", "catch", '1', request.query, ex);
         console.log(ex);
         return response.send({ code: "-1", message: `transactions not available` });
     }
