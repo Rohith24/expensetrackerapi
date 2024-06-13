@@ -9,6 +9,9 @@ import express = require('express');
 import { budget } from "../modules/budget";
 var router = express.Router();
 export = router;
+const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Types;
+
 
 
 //new 
@@ -20,16 +23,28 @@ router.get("/", async (request: express.Request, response: express.Response) => 
     var transactionModel = new transaction.transactions(request);
     try {
         let query = {};
-        if (!String.isNullOrWhiteSpace(reqQuery.accountId)) {
-            query['accountId'] = request.query.accountId;
+        if (!String.isNullOrWhiteSpace(request.query.accountId)) {
+            let accountId = ObjectId(reqQuery.accountId);
+            query = {
+                $or: [
+                    { fromAccountId: accountId },
+                    { toAccountId: accountId }
+                ]
+            }
         }
-        if (!String.isNullOrWhiteSpace(reqQuery.type)) {
-            query['type'] = request.query.type;
+        if (!String.isNullOrWhiteSpace(request.query.budget)) {
+            query['category'] = ObjectId(reqQuery.budget);
         }
-        if (!String.isNullOrWhiteSpace(reqQuery.deleteMark)) {
-            query['deleteMark'] = request.query.deleteMark;
+        if (!String.isNullOrWhiteSpace(request.query.type)) {
+            query['type'] = reqQuery.type;
         }
-        let transactionData = await transactionModel.find(query);
+        if (!String.isNullOrWhiteSpace(request.query.deleteMark)) {
+            query['deleteMark'] = reqQuery.deleteMark;
+        } else {
+            query['deleteMark'] = 0;
+        }
+
+        let transactionData = await transactionModel.defaultAggregate(query);
         if (transactionData == null) {
             return response.send({ code: "-1", message: `transactions not available with given search` });
         }

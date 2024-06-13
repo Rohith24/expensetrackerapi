@@ -607,6 +607,11 @@
             "type": "string"
           },
           {
+            "name": "budget",
+            "in": "query",
+            "type": "string"
+          },
+          {
             "name": "type",
             "in": "query",
             "type": "string"

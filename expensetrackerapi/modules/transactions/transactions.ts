@@ -17,8 +17,8 @@ enum TransactionType {
 }
 // create a transactionsschema
 var transactionsSchema = new Schema({
-    "fromAccountId": { type: String, index: true },
-    "toAccountId": { type: String, index: true },
+    "fromAccountId": { type: Schema.Types.ObjectId, index: true },
+    "toAccountId": { type: Schema.Types.ObjectId, index: true },
     "bankReferenceNo": { type: String, required: false, maxlength: 200 },
     "bankTranSummary": { type: String, required: false, maxlength: 500 },
     "transactionDate": { type: Date, required: true },
@@ -26,7 +26,7 @@ var transactionsSchema = new Schema({
     "amount": { type: Number, required: true },
     "subTranscationIds": [Schema.Types.ObjectId],
 
-    "category": { type: String, index: true },
+    "category": { type: Schema.Types.ObjectId, index: true },
     "details": { type: String },
     "additionalDetails": { type: String },
     "whom": { type: String },
@@ -394,6 +394,130 @@ export class transactionFactory extends coreModule {
         var model = await this.dal.model('transaction');
         var resData = await model.insertMany(transactionObjects);
         return await resData;
+    }
+
+    public defaultAggregate = async (matchQuery: any, projection?: any) => {
+        try {
+            let query = [
+                {
+                    $match: matchQuery
+                },
+                {
+                    $lookup:
+                    {
+                        from: "accounts",
+                        localField: "toAccountId",
+                        foreignField: "_id",
+                        as: "toAccount"
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$toAccount',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $lookup:
+                    {
+                        from: "accounts",
+                        localField: "fromAccountId",
+                        foreignField: "_id",
+                        as: "fromAccount"
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$fromAccount',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $lookup:
+                    {
+                        from: "budgets",
+                        localField: "category",
+                        foreignField: "_id",
+                        as: "budget"
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$budget',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $replaceRoot: { newRoot: "$$ROOT" }
+                },
+                {
+                    $set:
+                    /**
+                     * field: The field name
+                     * expression: The expression.
+                     */
+                    {
+                        type: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        {
+                                            $ifNull: [
+                                                "$fromAccountId",
+                                                false
+                                            ]
+                                        },
+                                        {
+                                            $ifNull: ["$toAccountId", false]
+                                        }
+                                    ]
+                                },
+                                // Both fromAccountId and toAccountId have values
+                                "Transfer",
+                                // If true, return 'Transfer'
+                                {
+                                    $cond: [
+                                        {
+                                            $ifNull: ["$toAccountId", false]
+                                        },
+                                        // Only toAccountId has a value
+                                        "Credit",
+                                        // If true, return 'Credit'
+                                        {
+                                            $cond: [
+                                                {
+                                                    $ifNull: [
+                                                        "$fromAccountId",
+                                                        false
+                                                    ]
+                                                },
+                                                // Only fromAccountId has a value
+                                                "Debit",
+                                                // If true, return 'Debit'
+                                                "Unknown" // Fallback value if none of the conditions match
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    $sort:
+                    {
+                        transactionDate: -1
+                    }
+                }
+            ]
+
+            projection = projection || {};
+            let model = await this.dal.model('transaction');
+            let ret = await model.aggregate(query, projection);
+            return ret;
+        } catch (ex) {
+            logger.error(this.request, "Error while executing defaultAggregate : " + ex.toString(), 'transaction', matchQuery, "catch", '1', matchQuery, ex);
+        }
     }
 
 

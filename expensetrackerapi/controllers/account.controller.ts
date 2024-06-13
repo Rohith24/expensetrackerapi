@@ -8,6 +8,8 @@ import express = require('express');
 import { transaction } from "../modules/transactions";
 var router = express.Router();
 export = router;
+const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Types;
 
 router.get("/", async (request: express.Request, response: express.Response) => {
     // #swagger.tags = ['Accounts']
@@ -78,32 +80,9 @@ router.get("/:accountId", async (request: express.Request, response: express.Res
 
         if (accountData && accountData != null) {
             if (reqQuery.includeTransactions = 1) {
-                let query = { $or: [{ fromAccountId: reqParams.accountId }, { toAccountId: reqParams.accountId }], deleteMark: 0 };
-                let transactions = await transcationModel.paginate(query, 0, 10, { transactionDate: -1 }, {
-                    transactionDate: 1,
-                    amount: 1,
-                    category: 1,
-                    accountId: reqParams.accountId,
-                    type: {
-                        $cond: [
-                            { $and: [{ $ifNull: ["$fromAccountId", false] }, { $ifNull: ["$toAccountId", false] }] }, // Both fromAccountId and toAccountId have values
-                            "Transfer", // If true, return 'Transfer'
-                            {
-                                $cond: [
-                                    { $ifNull: ["$toAccountId", false] }, // Only toAccountId has a value
-                                    "Credit", // If true, return 'Credit'
-                                    {
-                                        $cond: [
-                                            { $ifNull: ["$fromAccountId", false] }, // Only fromAccountId has a value
-                                            "Debit", // If true, return 'Debit'
-                                            "Unknown" // Fallback value if none of the conditions match
-                                        ]
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                });
+                let accountId = ObjectId(reqParams.accountId);
+                let query = { $or: [{ fromAccountId: accountId }, { toAccountId: accountId }], deleteMark: 0 };
+                let transactions = await transcationModel.defaultAggregate(query);
                 let transactionCount = await transcationModel.count(query)
                 accountData.Transactions = transactions;
                 accountData.TransactionCount = transactionCount;
