@@ -190,24 +190,24 @@ export class transactionFactory extends coreModule {
                         //Check whether user has permission to save
                         transactionObj.changeCount = 1;
                         var transactionData = await this._create(transactionObj);
-                        result = { code: "0", message: "Transaction Created", Transaction: transactionData };
+                        result = { code: "0", message: "Transaction Created", transaction: transactionData };
                     } catch (ex) {
                         result = { code: "-1", message: "Error while saving Transaction", "error": ex };
                     }
                 } else if (transactionExists.deleteMark != 0) {
-                    result = { code: "-1", message: "object has been already used and logically deleted", Transaction: transactionExists };
+                    result = { code: "-1", message: "object has been already used and logically deleted", transaction: transactionExists };
                 } else if (transactionExists.isActive != 1) {
-                    result = { code: "-1", message: "code already exists and is inactive", Transaction: transactionExists };
+                    result = { code: "-1", message: "code already exists and is inactive", transaction: transactionExists };
                 } else {
-                    result = { code: "-1", message: "object already exists with the given code", Transaction: transactionExists };
+                    result = { code: "-1", message: "object already exists with the given code", transaction: transactionExists };
                 }
             } else {
                 if (!transactionExists) {
                     result = { code: "-1", message: "code could not be found" };
                 } else if (transactionExists.deleteMark != 0) {
-                    result = { code: "-1", message: "object has been already used and logically deleted", Transaction: transactionExists };
+                    result = { code: "-1", message: "object has been already used and logically deleted", transaction: transactionExists };
                 } else if (transactionExists.isActive != 1) {
-                    result = { code: "-1", message: "object already exists with the given code", Transaction: transactionExists };
+                    result = { code: "-1", message: "object already exists with the given code", transaction: transactionExists };
                 } else {
                     if (transactionExists.changeCount == changeCount) {
                         try {
@@ -215,12 +215,12 @@ export class transactionFactory extends coreModule {
                             transactionObj._id = transactionExists._id;
                             transactionObj.createdBy = transactionObj.createdBy || transactionExists.createdBy;
                             let transactionData = await this._update(transactionObj);
-                            result = { code: "0", message: "Transaction updated", Transaction: transactionData };
+                            result = { code: "0", message: "Transaction updated", transaction: transactionData };
                         } catch (ex) {
                             result = { code: "-1", message: "Error while updating transaction", "error": ex };
                         }
                     } else {
-                        result = { code: "-1", message: "A concurrency issues occurred while updating transaction", Transaction: transactionExists };
+                        result = { code: "-1", message: "A concurrency issues occurred while updating transaction", transaction: transactionExists };
                     }
 
                 }

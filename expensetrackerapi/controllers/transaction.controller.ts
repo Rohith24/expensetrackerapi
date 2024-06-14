@@ -67,6 +67,36 @@ router.get("/", async (request: express.Request, response: express.Response) => 
     }
 });
 
+router.get("/get/:transactionId", async (request: express.Request, response: express.Response) => {
+    // #swagger.tags = ['Transactions']
+    var transactionModel = new transaction.transactions(request);
+    let reqParams: any = request.params;
+    let result;
+    try {
+        let query = {};
+
+        let transactionData = await transactionModel.findById(reqParams.transactionId);
+        if (transactionData == null) {
+            return response.send({ code: "-1", message: `transactions not available with given search` });
+        }
+
+        if (transactionData && transactionData != null) {
+            result = { code: "0", message: "transaction successfully retrieved", transaction: transactionData };
+        }
+        else {
+            result = { code: "-1", message: `transaction not available` };
+        }
+        // #swagger.responses[200] = { description: 'transaction retrieved successfully.' }
+        //logger.info(request, "Response", "transactions/Retrieve", '', "response", '5', result);
+        return response.send(result);
+    } catch (ex) {
+        //let mongoLogger = new loggerApi.logger(request);
+        //mongoLogger.pustToQueue(request.body, 'user', request.query.transactionId, 'fetch', ex.toString());
+        logger.error(request, "Error while executing transaction retrieve  error : " + ex.toString(), "transactions/Retrieve", request.query.transactionId, "catch", '1', request.query, ex);
+        console.log(ex);
+        return response.send({ code: "-1", message: `transactions not available` });
+    }
+});
 
 router.get("/latest", async (request: express.Request, response: express.Response) => {
     // #swagger.tags = ['Transactions']
@@ -135,7 +165,7 @@ router.patch("/:transactionId", async (request: express.Request, response: expre
     var transactionModel = new transaction.transactions(request);
     var accountModel = new account.accounts(request);
     let reqParams: any = request.params;
-    let reqUser: any = request.query;
+    let reqUser: any = request.body;
     if (String.isNullOrWhiteSpace(reqUser.user)) {
         return response.send({ code: "-1", message: "user cannot be empty" });
     }
@@ -144,12 +174,13 @@ router.patch("/:transactionId", async (request: express.Request, response: expre
     }
     try {
         var transactionObj = await transactionModel.findById(reqParams.transactionId);
+        request.body.transaction.lastModifiedBy = request.body.transaction.lastModifiedBy ?? reqUser.user;
         var savedData = await transactionModel.save(request.body.transaction);
         if (savedData == null) {
             return response.json({ code: "-1", message: "Updating transcation failed." });
         } else {
             if (savedData.code == "0") {
-                let savedTransaction = savedData.Transaction;
+                let savedTransaction = savedData.transaction;
                 if (transactionObj.fromAccountId != savedTransaction.fromAccountId) {
                     await accountModel.UpdateBalance(transactionObj.fromAccountId, transactionObj.amount); // Revert previous fromAccount balance
                     savedTransaction.fromAccountId = await accountModel.UpdateBalance(savedTransaction.fromAccountId, -savedTransaction.amount); // Apply new fromAccount balance
@@ -218,25 +249,25 @@ router.post("/", async (request: express.Request, response: express.Response) =>
 
     try {
         let result;
-        if (request.body.Transaction == null || request.body.Transaction == undefined) {
+        if (request.body.transaction == null || request.body.transaction == undefined) {
             return response.json(response.json({ code: "-1", message: "Transaction json cannot be empty" }));
         }
 
-        if ((request.body.Transaction.fromAccountId == null || request.body.Transaction.fromAccountId == undefined) && (request.body.Transaction.toAccountId == null || request.body.Transaction.toAccountId == undefined)) {
+        if ((request.body.transaction.fromAccountId == null || request.body.transaction.fromAccountId == undefined) && (request.body.transaction.toAccountId == null || request.body.transaction.toAccountId == undefined)) {
             return response.json(response.json({ code: "-1", message: "Atleast One Account is needed to create a transcation" }));
         }
 
-        if ((request.body.Transaction.amount == null || request.body.Transaction.amount == undefined) && typeof request.body.Transaction.amount === 'number') {
+        if ((request.body.transaction.amount == null || request.body.transaction.amount == undefined) && typeof request.body.transaction.amount === 'number') {
             return response.json(response.json({ code: "-1", message: "Please provide the correct Amount" }));
         }
 
-        if (request.body.Transaction.category == null || request.body.Transaction.category == undefined) {
+        if (request.body.transaction.category == null || request.body.transaction.category == undefined) {
             return response.json(response.json({ code: "-1", message: "Please provide the category. If no category create one." }));
         }
 
-        let transactionBody = request.body.Transaction;
+        let transactionBody = request.body.transaction;
 
-        let validations = validation.SaveValidations(request.body, "Transaction", false);
+        let validations = validation.SaveValidations(request.body, "transaction", false);
         if (validations.code == "-1") {
             result = { code: "-1", message: validations.message };
             return response.json(result);
@@ -257,11 +288,11 @@ router.post("/", async (request: express.Request, response: express.Response) =>
                     result.fromAccount = await accountModel.UpdateBalance(transactionBody.fromAccountId, transactionBody.amount * -1);
                     result.toAccount = await accountModel.UpdateBalance(transactionBody.toAccountId, transactionBody.amount);
                     let amount, isTransfer = 0;
-                    if (request.body.Transaction.fromAccountId == null || request.body.Transaction.fromAccountId == undefined) {
+                    if (request.body.transaction.fromAccountId == null || request.body.transaction.fromAccountId == undefined) {
                         isTransfer += 1;
                         amount = transactionBody.amount * -1;
                     }
-                    if (request.body.Transaction.toAccountId == null || request.body.Transaction.toAccountId == undefined) {
+                    if (request.body.transaction.toAccountId == null || request.body.transaction.toAccountId == undefined) {
                         isTransfer += 1;
                         amount = transactionBody.amount * 1;
                     }
@@ -278,14 +309,14 @@ router.post("/", async (request: express.Request, response: express.Response) =>
                 if (result.error != undefined) {
                     result.message = result.message + "; " + result.error;
                 }
-                logger.error(request, "Error while executing Transaction update error : " + result.message, "Transaction/save", request.body.Transaction && request.body.Transaction._id, "catch", '1', request.body, result.message);
+                logger.error(request, "Error while executing Transaction update error : " + result.message, "Transaction/save", request.body.transaction && request.body.transaction._id, "catch", '1', request.body, result.message);
             }
             // #swagger.responses[200] = { description: 'Transaction created successfully.' }
             //logger.info(request, "Response", "Transaction/save", result._id, "response", '5', result);
             return response.send(result);
         }
     } catch (ex) {
-        logger.error(request, "Error while executing Transaction Save  error : " + ex.toString(), "Transaction/save", request.body.Transaction && request.body.Transaction._id, "catch", '1', request.body, ex);
+        logger.error(request, "Error while executing Transaction Save  error : " + ex.toString(), "Transaction/save", request.body.transaction && request.body.transaction._id, "catch", '1', request.body, ex);
         console.log(ex);
         return response.send({ code: "-1", message: "Error while saving Transaction; " + ex });
     }
