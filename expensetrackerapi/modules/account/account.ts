@@ -196,18 +196,10 @@ export class accountFactory extends coreModule {
                 } else if (accountExists.deleteMark != 0) {
                     result = { code: "-1", message: "object has been already used and logically deleted", account: accountExists };
                 } else if (accountExists.isActive != 1) {
-                    result = { code: "-1", message: "object already exists with the given code", account: accountExists };
+                    result = { code: "-1", message: "Account exists and is inactive", account: accountExists };
                 } else {
                     if (accountExists.changeCount == changeCount) {
                         try {
-                            //Check whether user has permission to update
-                            //accountExists = await this.ACLPrecedence(accountExists, true);
-                            if (accountExists.securityCode == null || accountExists.securityCode < 7) {
-                                return { code: "-1", message: "You don't have access to perform this action." };
-                            }
-                            delete accountExists.securityCode;
-                            delete accountExists.precedenceAcl;
-
                             accountObj.changeCount = accountObj.changeCount + 1;
                             accountObj._id = accountExists._id;
                             accountObj.createdBy = accountObj.createdBy || accountExists.createdBy;
@@ -366,6 +358,7 @@ export class accountFactory extends coreModule {
                     obj["createdBy"] = this.request?.currentUser?.userCode || "crradmin";
                     obj["lastModifiedBy"] = this.request?.currentUser?.userCode || "crradmin";
                     obj["tenantCode"] = "BudgetTracker";
+                    obj["changeCount"] = 1;
                     let accountData = await this._create(obj);
                     insertedCount++;
                 }
