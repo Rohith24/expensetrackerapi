@@ -191,6 +191,19 @@ class tenant {
                 ]
             }
             await tenant.create(dc);
+            dc = {
+                "_id": 4,
+                "tenantCode": "BudgetTracker1",
+                "tenantName": "BudgetTracker1",
+                "description": "BudgetTracker1",
+                "logLevel": 4,
+                "database": [
+                    {
+                        "database": "BudgetTracker1"
+                    }
+                ]
+            }
+            await tenant.create(dc);
         }
         catch (ex) {
             console.log("Error while executing loadTenants in tenant " + ex.toString());

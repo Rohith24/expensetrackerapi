@@ -273,3 +273,9 @@ export function sum(num1: any, num2: any) : number {
     num2 = Number.parseFloat(num2)
     return roundNumber(roundNumber(num1) + roundNumber(num2));
 }
+
+export function subtract(num1: any, num2: any): number {
+    num1 = Number.parseFloat(num1)
+    num2 = Number.parseFloat(num2)
+    return roundNumber(roundNumber(num1) - roundNumber(num2));
+}

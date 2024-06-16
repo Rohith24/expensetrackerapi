@@ -3,15 +3,22 @@ import coreModule = require('../coreModule');
 import logger = require('../../controllers/logger');
 
 import mongoose = require('mongoose');
-import { sum } from '../../lib/utilities';
+import { subtract, sum } from '../../lib/utilities';
+import config = require('../../config');
 
 var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
 
+const BudgetType = {
+    Expense: 'Expense',
+    Income: 'Income',
+    Other: 'Other'
+};
 
 // create a budgetSchema
 var budgetSchema = new Schema({
     "name": { type: String, required: true, index: true },
+    "type": { type: String, enum: Object.values(BudgetType), required: true },
     "amount": { type: Number, required: true },
     "tillNow": { type: Number, required: true },
 
@@ -325,13 +332,13 @@ export class budgetFactory extends coreModule {
         let msg = "";
         try {
             var budgets = budgetData.map(bud => (
-                 {
+                {
                     name: bud['Name'],
                     amount: 0,
                     tillNow: 0,
                     createdBy: this.request?.currentUser?.userCode || "crradmin",
                     lastModifiedBy: this.request?.currentUser?.userCode || "crradmin",
-                    tenantCode: "BudgetTracker"
+                    tenantCode: config.defaultTenant
                 }));
             return this.insertMany(budgets);
         } catch (ex) {
@@ -348,12 +355,24 @@ export class budgetFactory extends coreModule {
             }
         }
     }
- 
+
     public UpdateAmount = async (budget: any, amount: number) => {
-        if (budget.tillNow)
-            budget.tillNow = sum(budget.tillNow, amount);
-        else
-            budget.tillNow = amount;
+        if (budget.tillNow) {
+            if (budget.type == BudgetType.Income) {
+                budget.tillNow = sum(budget.tillNow, amount);
+            }
+            if (budget.type == BudgetType.Expense) {
+                budget.tillNow = sum(budget.tillNow, -1 * amount);
+            }
+        }
+        else {
+            if (budget.type == BudgetType.Income) {
+                budget.tillNow = amount;
+            }
+            if (budget.type == BudgetType.Expense) {
+                budget.tillNow = amount * -1;
+            }
+        }
         return await this._update(budget);
     }
 }

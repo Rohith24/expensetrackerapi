@@ -6,6 +6,7 @@ import { budget } from '../budget';
 import mongoose = require('mongoose');
 import { account } from '../account';
 import { capitalize } from '../../lib/utilities';
+import config = require('../../config');
 
 var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
@@ -592,7 +593,7 @@ export class transactionFactory extends coreModule {
                     obj["additionalDetails"] = transactionObj['SubDetails'];
                     obj["createdBy"] = this.request?.currentUser?.userCode || "crradmin";
                     obj["lastModifiedBy"] = this.request?.currentUser?.userCode || "crradmin";
-                    obj["tenantCode"] = "BudgetTracker";
+                    obj["tenantCode"] = config.defaultTenant;
                 
                     let transactionData = await this._create(obj);
                     insertedCount++;

@@ -26,15 +26,12 @@ router.get("/", async (request: express.Request, response: express.Response) => 
             query['deleteMark'] = 0;
         }
         let budgetData = await budgetModel.find(query);
-        if (budgetData == null) {
-            return response.send({ code: "-1", message: `budgets not available with given search` });
-        }
-
+       
         if (budgetData && budgetData != null) {
-            result = { code: "0", message: "budget successfully retrieved", budgets: budgetData };
+            result = { code: "0", message: "Budgets successfully retrieved", budgets: budgetData };
         }
         else {
-            result = { code: "-1", message: `budget not available` };
+            result = { code: "-1", message: `Budgets not available. Create new budget` };
         }
         // #swagger.responses[200] = { description: 'budget retrieved successfully.' }
         //logger.info(request, "Response", "budgets/Retrieve", '', "response", '5', result);
@@ -114,7 +111,7 @@ router.post("/", async (request: express.Request, response: express.Response) =>
                     budgetBody.tillNow = 0;
                 }
                 budgetBody.lastModifiedBy = request.body.user;
-                budgetBody.tenantCode = "BudgetTracker";
+                budgetBody.tenantCode = config.defaultTenant;
                 result = await budgetModel.save(budgetBody);
                 /*if (result.User) {
                     result.User = await userModel.dataConversion(result.User, "tenant", "save");
@@ -159,7 +156,7 @@ router.patch("/:budgetId", async (request: express.Request, response: express.Re
         } else {
             try {
                 budgetBody.lastModifiedBy = request.body.user;
-                budgetBody.tenantCode = "BudgetTracker";
+                budgetBody.tenantCode = config.defaultTenant;
                 result = await budgetModel._update(budgetBody);
                 /*if (result.User) {
                     result.User = await userModel.dataConversion(result.User, "tenant", "save");

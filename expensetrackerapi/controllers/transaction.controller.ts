@@ -45,15 +45,11 @@ router.get("/", async (request: express.Request, response: express.Response) => 
         }
 
         let transactionData = await transactionModel.defaultAggregate(query);
-        if (transactionData == null) {
-            return response.send({ code: "-1", message: `transactions not available with given search` });
-        }
-
         if (transactionData && transactionData != null) {
             result = { code: "0", message: "transaction successfully retrieved", transactions: transactionData };
         }
         else {
-            result = { code: "-1", message: `transaction not available` };
+            result = { code: "-1", message: `Transactions not available. Create new transaction.` };
         }
         // #swagger.responses[200] = { description: 'transaction retrieved successfully.' }
         //logger.info(request, "Response", "transactions/Retrieve", '', "response", '5', result);
@@ -252,6 +248,9 @@ router.post("/", async (request: express.Request, response: express.Response) =>
         if (request.body.transaction == null || request.body.transaction == undefined) {
             return response.json(response.json({ code: "-1", message: "Transaction json cannot be empty" }));
         }
+        if ((request.body.transaction.fromAccountId != null && request.body.transaction.fromAccountId != undefined) && (request.body.transaction.toAccountId != null && request.body.transaction.toAccountId != undefined) && request.body.transaction.fromAccountId == request.body.transaction.toAccountId) {
+            return response.json(response.json({ code: "-1", message: "Both from account and to account are same" }));
+        }
 
         if ((request.body.transaction.fromAccountId == null || request.body.transaction.fromAccountId == undefined) && (request.body.transaction.toAccountId == null || request.body.transaction.toAccountId == undefined)) {
             return response.json(response.json({ code: "-1", message: "Atleast One Account is needed to create a transcation" }));
@@ -288,13 +287,13 @@ router.post("/", async (request: express.Request, response: express.Response) =>
                     result.fromAccount = await accountModel.UpdateBalance(transactionBody.fromAccountId, transactionBody.amount * -1);
                     result.toAccount = await accountModel.UpdateBalance(transactionBody.toAccountId, transactionBody.amount);
                     let amount, isTransfer = 0;
-                    if (request.body.transaction.fromAccountId == null || request.body.transaction.fromAccountId == undefined) {
+                    if (request.body.transaction.fromAccountId != null  && request.body.transaction.fromAccountId != undefined) {
                         isTransfer += 1;
                         amount = transactionBody.amount * -1;
                     }
-                    if (request.body.transaction.toAccountId == null || request.body.transaction.toAccountId == undefined) {
+                    if (request.body.transaction.toAccountId != null || request.body.transaction.toAccountId != undefined) {
                         isTransfer += 1;
-                        amount = transactionBody.amount * 1;
+                        amount = transactionBody.amount *1;
                     }
                     if (isTransfer === 1)
                         result.budget = await budgetModel.UpdateAmountById(transactionBody.category, amount);

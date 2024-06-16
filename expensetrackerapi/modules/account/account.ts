@@ -4,6 +4,7 @@ import logger = require('../../controllers/logger');
 
 import mongoose = require('mongoose');
 import { sum } from '../../lib/utilities';
+import config = require('../../config');
 
 var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
@@ -357,7 +358,7 @@ export class accountFactory extends coreModule {
                     obj["interest"] = accountObj['Interest'];
                     obj["createdBy"] = this.request?.currentUser?.userCode || "crradmin";
                     obj["lastModifiedBy"] = this.request?.currentUser?.userCode || "crradmin";
-                    obj["tenantCode"] = "BudgetTracker";
+                    obj["tenantCode"] = config.defaultTenant;
                     obj["changeCount"] = 1;
                     let accountData = await this._create(obj);
                     insertedCount++;

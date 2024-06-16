@@ -37,15 +37,11 @@ router.get("/", async (request: express.Request, response: express.Response) => 
             query['deleteMark'] = 0;
         }
         let accountData = await accountModel.find(query);
-        if (accountData == null) {
-            return response.send({ code: "-1", message: `accounts not available with given search` });
-        }
-
         if (accountData && accountData != null) {
-            result = { code: "0", message: "account successfully retrieved", accounts: accountData };
+            result = { code: "0", message: "Accounts successfully retrieved", accounts: accountData };
         }
         else {
-            result = { code: "-1", message: `account not available` };
+            result = { code: "-1", message: `Accounts not available. Create new account.` };
         }
         // #swagger.responses[200] = { description: 'account retrieved successfully.' }
         //logger.info(request, "Response", "accounts/Retrieve", '', "response", '5', result);
@@ -55,7 +51,7 @@ router.get("/", async (request: express.Request, response: express.Response) => 
         //mongoLogger.pustToQueue(request.body, 'user', request.query.accountId, 'fetch', ex.toString());
         logger.error(request, "Error while executing account retrieve  error : " + ex.toString(), "accounts/Retrieve", request.query.accountId, "catch", '1', request.query, ex);
         console.log(ex);
-        return response.send({ code: "-1", message: `accounts not available` });
+        return response.send({ code: "-1", message: `Accounts not available` });
     }
 });
 
@@ -128,12 +124,13 @@ router.post("/", async (request: express.Request, response: express.Response) =>
             try {
                 if (accountBody.changeCount == 0) {
                     accountBody.createdBy = request.body.user;
+                    accountBody.isActive = 1;
                 }
                 if (accountBody.balance == null || accountBody.balance == undefined) {
                     accountBody.balance = accountBody.initBalance;
                 }
                 accountBody.lastModifiedBy = request.body.user;
-                accountBody.tenantCode = "BudgetTracker";
+                accountBody.tenantCode = config.defaultTenant;
                 result = await accountModel.save(accountBody);
                 /*if (result.User) {
                     result.User = await userModel.dataConversion(result.User, "tenant", "save");
@@ -178,7 +175,7 @@ router.patch("/:accountId", async (request: express.Request, response: express.R
         } else {
             try {
                 accountBody.lastModifiedBy = request.body.user;
-                accountBody.tenantCode = "BudgetTracker";
+                accountBody.tenantCode = config.defaultTenant;
                 result = await accountModel._update(accountBody);
                 /*if (result.User) {
                     result.User = await userModel.dataConversion(result.User, "tenant", "save");
